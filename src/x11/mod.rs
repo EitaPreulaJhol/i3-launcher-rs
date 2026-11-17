@@ -49,8 +49,7 @@ impl X11 {
     /// strip window (override-redirect + exclusive keyboard grab).
     pub fn create(cfg: &Config) -> Result<Self> {
         let background = cfg.style.bg;
-        let (conn, screen_num) =
-            x11rb::connect(None).context("não foi possível abrir o display X11")?;
+        let (conn, screen_num) = x11rb::connect(None).context("could not open the X11 display")?;
         let screen = &conn.setup().roots[screen_num];
         let root = screen.root;
         let depth = screen.root_depth;
@@ -65,8 +64,8 @@ impl X11 {
             .map(|reply| reply.focus)
             .filter(|focus| *focus > 1 && *focus != root);
         debug(|| match previous_focus {
-            Some(window) => format!("foco anterior: {window:#x}"),
-            None => "foco anterior: nenhum".to_string(),
+            Some(window) => format!("previous focus: {window:#x}"),
+            None => "previous focus: none".to_string(),
         });
 
         let monitors = monitor::list(&conn, root, screen.width_in_pixels, screen.height_in_pixels);
@@ -75,7 +74,7 @@ impl X11 {
         let rect = monitor::bar_rect(monitor.rect, cfg);
         let monitor_name = monitor.name.clone();
 
-        let win = conn.generate_id().context("XAllocID falhou")?;
+        let win = conn.generate_id().context("XAllocID failed")?;
         let background_pixel =
             ((background.r as u32) << 16) | ((background.g as u32) << 8) | background.b as u32;
         conn.create_window(
@@ -101,7 +100,7 @@ impl X11 {
                         | EventMask::FOCUS_CHANGE,
                 ),
         )
-        .context("não foi possível criar a janela do launcher")?;
+        .context("could not create the launcher window")?;
 
         // Identification, useful for debug tools and window rules.
         conn.change_property8(
@@ -135,7 +134,7 @@ impl X11 {
         if let Ok(reply) = grab.reply() {
             if reply.status != GrabStatus::SUCCESS {
                 eprintln!(
-                    "i3-launcher: aviso: grab de teclado recusado ({:?})",
+                    "i3-launcher: warning: keyboard grab refused ({:?})",
                     reply.status
                 );
             }
@@ -187,7 +186,7 @@ impl X11 {
                 self.depth,
                 pixels,
             )
-            .context("PutImage falhou")?;
+            .context("PutImage failed")?;
         self.conn.copy_area(
             self.back_buffer,
             self.win,
@@ -295,7 +294,7 @@ impl Drop for X11 {
                             .ok()
                             .and_then(|cookie| cookie.reply().ok())
                             .map(|reply| reply.focus);
-                        format!("foco restaurado: {previous:#x} (atual: {focus:x?})")
+                        format!("focus restored: {previous:#x} (current: {focus:x?})")
                     });
                 }
             }

@@ -1,8 +1,8 @@
-# i3-launcher-rs — Plano
+# i3-launcher-rs — Plan
 
-Launcher estilo `dmenu`: uma **strip horizontal** (padrão no topo do monitor, posição
-configurável), `override-redirect`, com **ícones dos aplicativos**, busca incremental e
-execução de entrys `.desktop`.
+`dmenu`-style launcher: a **horizontal strip** (top of the monitor by default,
+configurable position), `override-redirect`, with **application icons**,
+incremental search and execution of `.desktop` entries.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -10,80 +10,80 @@ execução de entrys `.desktop`.
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 1. Objetivo e escopo
+## 1. Goal and scope
 
-| Dentro do escopo (v1)                              | Fora do escopo (roadmap)                    |
-| -------------------------------------------------- | ------------------------------------------- |
-| Strip topo/base, largura do monitor, margens, offset | Layout em grade (várias linhas)             |
-| Ícones via especificação XDG Icon Theme            | Wayland / layer-shell                       |
-| Busca substring + fuzzy, ordenação por score       | IME / composição de caracteres complexos    |
-| Navegação por teclado + mouse (clique/scroll)      | Histórico/frequência de uso, `frecency`     |
-| Execução de `.desktop` com `Exec` e `Terminal`     | Plugins, múltiplos providers                |
-| Modo dmenu (stdin) para compatibilidade            | Temas carregados de arquivos externos       |
-| Config TOML + flags estilo dmenu                   | Preview pane / ações por item               |
+| In scope (v1)                                        | Out of scope (roadmap)                  |
+| ---------------------------------------------------- | --------------------------------------- |
+| Top/bottom strip, monitor width, margins, offset     | Grid layout (multiple rows)             |
+| Icons via the XDG Icon Theme spec                    | Wayland / layer-shell                   |
+| Substring + fuzzy search, score ordering             | IME / complex character composition     |
+| Keyboard + mouse navigation (click/scroll)           | History/usage frequency, `frecency`     |
+| `.desktop` execution with `Exec` and `Terminal`      | Plugins, multiple providers             |
+| dmenu mode (stdin) for compatibility                 | Themes loaded from external files       |
+| TOML config + dmenu-style flags                      | Preview pane / per-item actions         |
 
-Alvo: **X11 + i3**. Sem runtime assíncrono, sem toolkit pesado: janela própria via
-`x11rb`, desenho por software, inicialização < 50 ms com ~50 apps.
+Target: **X11 + i3**. No async runtime, no heavy toolkit: own window via
+`x11rb`, software drawing, startup < 50 ms with ~50 apps.
 
-## 2. Decisões técnicas
+## 2. Technical decisions
 
-| Área       | Escolha                  | Por quê |
-| ---------- | ------------------------ | ------- |
-| Janela     | `x11rb` (protocolo puro) | Controle exato de posição/tamanho, `override-redirect` (o i3 não gerencia, sem borda/gap), grab de teclado, multi-monitor via RandR 1.5 |
-| Desenho    | `tiny-skia` (CPU)        | Rasterização antialiased, `Pixmap` compatível com `resvg`, sem GPU/compositor |
-| Texto      | `cosmic-text`            | Shaping, fallback de fontes, rasterização de glifos (`SwashCache`) |
-| Ícones     | `resvg` + `image` (png)  | SVG renderizado no tamanho final (nitidez), PNG redimensionado com Lanczos |
-| Config     | `serde` + `toml`         | Schema tipado, `deny_unknown_fields` para pegar erros de digitação |
-| Execução   | `std::process::Command`  | Sem `sh -c` para `.desktop` (respeita quoting do spec) |
+| Area      | Choice                   | Why |
+| --------- | ------------------------ | --- |
+| Window    | `x11rb` (pure protocol)  | Exact control over position/size, `override-redirect` (i3 does not manage it, no border/gap), keyboard grab, multi-monitor via RandR 1.5 |
+| Drawing   | `tiny-skia` (CPU)        | Antialiased rasterization, `Pixmap` compatible with `resvg`, no GPU/compositor |
+| Text      | `cosmic-text`            | Shaping, font fallback, glyph rasterization (`SwashCache`) |
+| Icons     | `resvg` + `image` (png)  | SVG rendered at the final size (sharp), PNG resized with Lanczos |
+| Config    | `serde` + `toml`         | Typed schema, `deny_unknown_fields` to catch typos |
+| Execution | `std::process::Command`  | No `sh -c` for `.desktop` (respects the spec quoting) |
 
-Por que não GTK/egui/iced: uma janela gerenciada pelo WM recebe borda, gaps e perde
-foco ao clicar fora; o launcher precisa se comportar como o dmenu (overlay efêmero,
-grab exclusivo do teclado, sem decoração).
+Why not GTK/egui/iced: a window managed by the WM gets a border, gaps and
+loses focus when clicking elsewhere; the launcher needs to behave like dmenu
+(ephemeral overlay, exclusive keyboard grab, no decorations).
 
-## 3. Arquitetura
+## 3. Architecture
 
 ```text
 src/
-  main.rs            parse de args → config → X11 → itens → loop de eventos
+  main.rs            arg parsing → config → X11 → items → event loop
   lib.rs
-  cli.rs             flags compatíveis com dmenu (-b -p -fn -nb -nf -sb -sf -m)
-  config.rs          TOML (bar/appearance/style/behavior), defaults, CLI, dimensões
-  theme.rs           paletas de cor prontas (catppuccin, gruvbox, nord, ...)
-  app.rs             Item/Action: unifica entrys .desktop e linhas de stdin
-  matching.rs        substring/fuzzy + score + filtro ordenado
+  cli.rs             dmenu-compatible flags (-b -p -fn -nb -nf -sb -sf -m)
+  config.rs          TOML (bar/appearance/style/behavior), defaults, CLI, dimensions
+  theme.rs           ready-made color palettes (catppuccin, gruvbox, nord, ...)
+  app.rs             Item/Action: unifies .desktop entries and stdin lines
+  matching.rs        substring/fuzzy + score + ordered filter
   desktop/
-    parser.rs        parser do Desktop Entry Spec (grupos, i18n, escapes)
-    scan.rs          varredura XDG_DATA_DIRS + dedup + filtros (NoDisplay, OnlyShowIn...)
+    parser.rs        Desktop Entry Spec parser (groups, i18n, escapes)
+    scan.rs          XDG_DATA_DIRS scan + dedup + filters (NoDisplay, OnlyShowIn...)
     launch.rs        Exec → argv (field codes), Terminal, detach
   icons/
-    theme.rs         index.theme, herança, busca best-fit por tamanho/contexto
-    mod.rs           IconCache: nome → Pixmap já escalado (PNG/SVG)
+    theme.rs         index.theme, inheritance, best-fit lookup by size/context
+    mod.rs           IconCache: name → already scaled Pixmap (PNG/SVG)
   x11/
-    mod.rs           conexão, átomos, janela, grab, PutImage
-    monitor.rs       RandR 1.5 → Xinerama → tela; monitor focado via _NET_ACTIVE_WINDOW
-    keys.rs          keycode/keysyms → char + modificadores
+    mod.rs           connection, atoms, window, grab, PutImage
+    monitor.rs       RandR 1.5 → Xinerama → screen; focused monitor via _NET_ACTIVE_WINDOW
+    keys.rs          keycode/keysyms → char + modifiers
   ui/
-    state.rs         query, cursor, seleção, scroll, edição de linha
-    layout.rs        geometria do prompt, input, viewport e células
-    paint.rs         desenho no Pixmap (barra, texto, ícones, cursor, chevrons,
-                     raios, bordas e highlight dos matches)
+    state.rs         query, cursor, selection, scroll, line editing
+    layout.rs        prompt, input, viewport and cell geometry
+    paint.rs         drawing into the Pixmap (bar, text, icons, cursor, chevrons,
+                     radii, borders and match highlighting)
 ```
 
-Fluxo de dados:
+Data flow:
 
 ```text
-.desktop ──scan──▶ Vec<Item> ──filtro(query)──▶ Vec<Match> ──layout──▶ Paint
-      stdin ───────┘                                  ▲                  │
-                                                     └── teclado/mouse ◀┘
-Enter ──▶ Action::Launch(argv) | Action::Shell(cmd) | Action::Print(texto)
+.desktop ──scan──▶ Vec<Item> ──filter(query)──▶ Vec<Match> ──layout──▶ Paint
+     stdin ────────┘                                 ▲                  │
+                                                    └── keyboard/mouse ◀┘
+Enter ──▶ Action::Launch(argv) | Action::Shell(cmd) | Action::Print(text)
 ```
 
-## 4. Posicionamento e geometria
+## 4. Positioning and geometry
 
-Tudo derivado do monitor escolhido (`monitor.target`):
+Everything derives from the chosen monitor (`monitor.target`):
 
 ```text
-monitor = RandR.monitors[i]                    (fallback: Xinerama, depois screen)
+monitor = RandR.monitors[i]                    (fallback: Xinerama, then screen)
 w  = config.bar.width  ?? monitor.width - 2*margin
 x  = monitor.x + margin + align_offset         (left | center | right)
 h  = config.bar.height
@@ -91,79 +91,83 @@ y  = monitor.y + offset                        (edge = top)
 y  = monitor.y + monitor.height - h - offset    (edge = bottom)
 ```
 
-Layout interno (uma linha, igual ao dmenu):
+Internal layout (one row, like dmenu):
 
 ```text
-[ padding ][ prompt ][ input: ~33% da largura ][ células de item ......... ]
-                                                         └ viewport com scroll horizontal
-célula = pad + ícone(icon_size) + gap + texto + pad     (altura = h - 2*padding)
+[ padding ][ prompt ][ input: ~33% of the width ][ item cells ......... ]
+                                                          └ horizontally scrolling viewport
+cell = pad + icon(icon_size) + gap + text + pad     (height = h - 2*padding)
 ```
 
-- Seleção sempre visível: `offset` é ajustado em `state.rs` após cada movimento.
-- Indicadores `<` / `>` quando há itens fora do viewport.
-- Texto centralizado verticalmente pela baseline do `cosmic-text`; ícones
-  alinhados ao centro da célula.
+- Selection always visible: `offset` is adjusted in `state.rs` after every
+  move.
+- `<` / `>` indicators when there are items outside the viewport.
+- Text vertically centered by the `cosmic-text` baseline; icons aligned to the
+  cell center.
 
-## 5. Ícones (XDG Icon Theme Spec)
+## 5. Icons (XDG Icon Theme Spec)
 
-Ordem de resolução para `Icon=<nome>`:
+Resolution order for `Icon=<name>`:
 
-1. Caminho absoluto → usa direto.
-2. Tema configurado (`appearance.icon_theme`), com herança (`Inherits`) recursiva.
-3. `hicolor` (fallback padrão do spec).
-4. `$XDG_DATA_DIRS/pixmaps`, `/usr/share/pixmaps` e `~/.icons`.
-5. Ícone genérico (`application-x-executable`) ou placeholder desenhado.
+1. Absolute path → used directly.
+2. Configured theme (`appearance.icon_theme`), with recursive inheritance
+   (`Inherits`).
+3. `hicolor` (the spec's default fallback).
+4. `$XDG_DATA_DIRS/pixmaps`, `/usr/share/pixmaps` and `~/.icons`.
+5. Generic icon (`application-x-executable`) or a drawn placeholder.
 
-Seleção de arquivo por diretório do tema (`index.theme`: `Size`, `Scale`, `Type`,
-`Context`): prioriza `Context=Applications`, tamanho exato, depois maiores, depois
-menores; `Type=Scalable` (SVG) renderizado sob demanda no tamanho alvo. Extensões:
-`svg` → `png` (XPM fica de fora na v1).
+File selection per theme directory (`index.theme`: `Size`, `Scale`, `Type`,
+`Context`): `Context=Applications` first, exact size, then larger, then
+smaller; `Type=Scalable` (SVG) rendered on demand at the target size.
+Extensions: `svg` → `png` (XPM is left out in v1).
 
-Cache: `HashMap<(nome, tamanho), Option<Pixmap>>` — a resolução é lazy, só para itens
-visíveis, e o resultado já sai no tamanho final.
+Cache: `HashMap<(name, size), Option<Pixmap>>` — resolution is lazy, only for
+visible items, and the result already comes out at the final size.
 
-## 6. Busca e ordenação
+## 6. Search and ordering
 
-- Normalização `case folding` (config `case_sensitive = false`).
+- `case folding` normalization (config `case_sensitive = false`).
 - `match_mode`:
-  - `substring`: posição do match, bônus em início de palavra, penalidade por tamanho.
-  - `fuzzy`: subsequência gulosa, bônus por caracteres consecutivos e início de palavra.
-- Score desc, empate estável (ordem original). `sort = false` mantém ordem de scan/stdin.
-- Campos pesquisáveis: `Name`, `GenericName`, `Keywords`, `Categories`.
-- Highlight dos caracteres casados em `style.highlight_fg` (via `set_rich_text`
-  do cosmic-text, usando as posições devolvidas pelo matcher).
+  - `substring`: match position, bonus at word start, length penalty.
+  - `fuzzy`: greedy subsequence, bonus for consecutive characters and word
+    start.
+- Score desc, stable tie (original order). `sort = false` keeps the scan/stdin
+  order.
+- Searchable fields: `Name`, `GenericName`, `Keywords`, `Categories`.
+- Highlight of matched characters in `style.highlight_fg` (via cosmic-text's
+  `set_rich_text`, using the positions returned by the matcher).
 
-## 7. Teclado e edição (compat dmenu)
+## 7. Keyboard and editing (dmenu compat)
 
-| Tecla                   | Ação |
-| ----------------------- | ---- |
-| `Esc`                   | sai (código 1) |
-| `Enter`                 | executa o item selecionado |
-| `Tab`                   | alterna apps (`.desktop`) ↔ comandos do `$PATH` |
-| `↑` / `↓`, `Ctrl+p/n`   | move seleção |
-| `←` / `→`               | move o item ativo |
-| `Ctrl+←` / `Ctrl+→`     | move o cursor de texto por palavra |
-| `Home` / `End`          | início/fim do texto; repetir vai ao primeiro/último item |
-| `Backspace` / `Delete`  | apaga antes/depois do cursor |
-| `Ctrl+W` / `Ctrl+U`     | apaga palavra / linha |
-| `PgUp` / `PgDn`         | salta 10 itens |
-| Clique / scroll         | seleciona / navega |
+| Key                     | Action |
+| ----------------------- | ------ |
+| `Esc`                   | exit (code 1) |
+| `Enter`                 | run the selected item |
+| `Tab`                   | switch apps (`.desktop`) ↔ `$PATH` commands |
+| `↑` / `↓`, `Ctrl+p/n`   | move selection |
+| `←` / `→`               | move the active item |
+| `Ctrl+←` / `Ctrl+→`     | move the text cursor by word |
+| `Home` / `End`          | start/end of text; repeat goes to the first/last item |
+| `Backspace` / `Delete`  | delete before/after the cursor |
+| `Ctrl+W` / `Ctrl+U`     | delete word / line |
+| `PgUp` / `PgDn`         | jump 10 items |
+| Click / scroll          | select / navigate |
 
-Modificadores lidos do `state` do evento X11; texto via `GetKeyboardMapping`
-(níveis 0/1 + Shift). Sem IME — limitação documentada na v1.
+Modifiers read from the X11 event `state`; text via `GetKeyboardMapping`
+(levels 0/1 + Shift). No IME — limitation documented in v1.
 
-## 8. Configuração (TOML)
+## 8. Configuration (TOML)
 
-Busca: `$I3L_CONFIG`, `--config`, `$XDG_CONFIG_HOME/i3-launcher/config.toml`,
-`~/.config/i3-launcher/config.toml`. Ver `config.example.toml`. Exemplo:
+Search: `$I3L_CONFIG`, `--config`, `$XDG_CONFIG_HOME/i3-launcher/config.toml`,
+`~/.config/i3-launcher/config.toml`. See `config.example.toml`. Example:
 
 ```toml
 [bar]
 edge = "top"        # top | bottom
-height = 20         # strip fina; ícones são limitados à altura
+height = 20         # thin strip; icons are limited to the height
 margin = 0
 offset = 0
-width = "100%"      # px ou "%"
+width = "100%"      # px or "%"
 align = "left"      # left | center | right
 
 [monitor]
@@ -174,20 +178,20 @@ font = "Sans"       # dmenu.rasi: "Sans 9" (9pt ≈ 12px)
 font_size = 12.0
 font_weight = 400   # 100..900
 prompt = "Run: "
-icon_theme = ""     # vazio = detecta (gtk settings / hicolor)
-icon_size = 14      # ~1.2em, como o element-icon do rofi
+icon_theme = ""     # empty = auto-detect (gtk settings / hicolor)
+icon_size = 14      # ~1.2em, like rofi's element-icon
 show_icons = true
 
 [style]
-# Padrão = original_source/dmenu.rasi (barra clara do i3/polybar).
-# theme = "" usa as cores abaixo; --themes lista os 14 temas alternativos.
+# Default = original_source/dmenu.rasi (light i3/polybar bar).
+# theme = "" uses the colors below; --themes lists the 14 alternative themes.
 theme = ""
 bg = "#dedede"
 fg = "#333333"
 selection_bg = "#c5c5c5"
 selection_fg = "#000000"
 selection_border = "#ff8c00"
-highlight_fg = ""          # opcional; o rasi não destaca matches
+highlight_fg = ""          # optional; the rasi does not highlight matches
 padding = 2.0              # window { padding: 2px; }
 gap = 0.0
 item_gap = 0.0             # listview { spacing: 0px; }
@@ -195,7 +199,7 @@ item_padding = 10.0        # element { padding: 0px 10px; }
 search_width = 120         # entry { width: 10em; }
 selection_radius = 0.0
 selection_border_width = 1.0
-input_bg = ""              # sem caixa (entry herda o fundo)
+input_bg = ""              # no box (the entry inherits the background)
 input_radius = 0.0
 panel_border_width = 0.0
 
@@ -203,94 +207,95 @@ panel_border_width = 0.0
 match_mode = "fuzzy"
 case_sensitive = false
 sort = true
-terminal = ""       # ex.: "alacritty -e"; vazio = $TERMINAL
+terminal = ""       # e.g. "alacritty -e"; empty = $TERMINAL
 print_selection = false
 ```
 
-Flags CLI sobrescrevem o config: `-p/--prompt`, `-b/--bottom`, `-e/--edge`,
+CLI flags override the config: `-p/--prompt`, `-b/--bottom`, `-e/--edge`,
 `-m/--monitor`, `-fn/--font`, `-nb/-nf/-sb/-sf`, `--icon-size`, `--no-icons`,
 `--height`, `--theme/--themes`, `--dmenu`, `--print`, `-c/--config`.
 
-Temas são aplicados preenchendo apenas as chaves de cor ausentes no TOML, então
-uma cor escrita pelo usuário sempre vence a paleta; `--theme` substitui o tema
-do arquivo e depois o mesmo merge acontece.
+Themes are applied by filling only the color keys missing from the TOML, so a
+color written by the user always wins over the palette; `--theme` replaces the
+theme from the file and then the same merge happens.
 
-O estilo padrão (sem config) é a tradução do `original_source/dmenu.rasi`:
-`background #DEDEDE`, `text #333333`, seleção `#C5C5C5` com texto `#000000` e
-borda de 1px `#FF8C00`, cantos retos, `window padding 2px`,
-`element padding 0px 10px`, `height 20px`, `entry 10em` e `font Sans 9`.
+The default style (without a config) is the translation of
+`original_source/dmenu.rasi`: `background #DEDEDE`, `text #333333`, selection
+`#C5C5C5` with `#000000` text and a 1px `#FF8C00` border, square corners,
+`window padding 2px`, `element padding 0px 10px`, `height 20px`, `entry 10em`
+and `font Sans 9`.
 
 ## 9. Milestones
 
-- [x] **M0 — Esqueleto**: Cargo, deps, config, CLI, docs, estrutura de módulos.
-- [x] **M1 — Dados**: parser `.desktop` (i18n/escapes/field codes), scan XDG,
-      resolução de ícones (PNG/SVG, herança), matching, testes unitários.
-- [x] **M2 — Janela**: conexão X11, geometria por monitor (RandR/Xinerama),
-      janela `override-redirect`, grab de teclado, Esc/Enter.
-- [x] **M3 — UI**: pintura da strip (fundo, prompt, input, cursor, ícones),
-      edição de texto, navegação, scroll horizontal, execução de apps.
-- [x] **M4 — Polimento**: mouse, indicadores de scroll, detecção de tema GTK,
-      cache de medição de texto, `--dmenu`, validação de `Exec`, benchmark.
-- [x] **M4.5 — Estilo**: seção `[style]`, 14 temas prontos, raios/bordas de
-      seleção e input, borda do painel, highlight do match, peso da fonte.
-- [x] **M4.6 — Modos**: `Tab` alterna apps `.desktop` e executáveis do `$PATH`
-      (sem ícones, execução direta, scan sob demanda).
-- [x] **M5 — Entrega**: README com instalação/bind do i3, `make install`,
-      `cargo clippy -D warnings` limpo, testes de integração, release build.
+- [x] **M0 — Skeleton**: Cargo, deps, config, CLI, docs, module structure.
+- [x] **M1 — Data**: `.desktop` parser (i18n/escapes/field codes), XDG scan,
+      icon resolution (PNG/SVG, inheritance), matching, unit tests.
+- [x] **M2 — Window**: X11 connection, per-monitor geometry (RandR/Xinerama),
+      `override-redirect` window, keyboard grab, Esc/Enter.
+- [x] **M3 — UI**: strip painting (background, prompt, input, cursor, icons),
+      text editing, navigation, horizontal scroll, app launching.
+- [x] **M4 — Polish**: mouse, scroll indicators, GTK theme detection, text
+      measurement cache, `--dmenu`, `Exec` validation, benchmark.
+- [x] **M4.5 — Style**: `[style]` section, 14 ready-made themes, selection and
+      input radii/borders, panel border, match highlighting, font weight.
+- [x] **M4.6 — Modes**: `Tab` switches between `.desktop` apps and `$PATH`
+      executables (no icons, direct execution, on-demand scan).
+- [x] **M5 — Delivery**: README with installation/i3 bind, `make install`,
+      clean `cargo clippy -D warnings`, integration tests, release build.
 
-### Estado atual (medido nesta máquina: i3 4.22, Xorg, 1366x768, 38 apps)
+### Current state (measured on this machine: i3 4.22, Xorg, 1366x768, 38 apps)
 
 ```text
-config:          0 ms
-scan .desktop:   1-2 ms
-janela X11:      0 ms (grab do teclado já ativo)
-fontes + tema:   8-9 ms (fontconfig/Adwaita)
-primeiro frame: 12-13 ms
-TOTAL:          23-26 ms até a strip visível
-(primeiro Tab: +6-15 ms para varrer o $PATH; depois fica em cache)
+config:           0 ms
+scan .desktop:    1-2 ms
+X11 window:       0 ms (keyboard grab already active)
+fonts + theme:    8-9 ms (fontconfig/Adwaita)
+first frame:     12-13 ms
+TOTAL:           23-26 ms until the strip is visible
+(first Tab: +6-15 ms to scan $PATH; cached afterwards)
 ```
 
-Desvios do plano original:
+Deviations from the original plan:
 
-- `bar.corner_radius` foi substituído por `appearance.sel_radius`: arredondar a
-  janela exigiria visual ARGB + compositor, enquanto o destaque de seleção já
-  fica bom em profundidade 24.
-- `--print` foi adicionado para testes/scripts (imprime em vez de executar).
-- Ferramentas de depuração em `examples/` (`measure`, `layout_dump`, `match_dump`).
+- `bar.corner_radius` was replaced by `appearance.sel_radius`: rounding the
+  window would require an ARGB visual + compositor, while the selection
+  highlight already looks good at depth 24.
+- `--print` was added for tests/scripts (prints instead of running).
+- Debug tools in `examples/` (`measure`, `layout_dump`, `match_dump`).
 
-### Próximos passos (v2)
+### Next steps (v2)
 
-1. Layout em grade (`layout = "grid"`, `rows = N`) para muitos apps.
-2. `xkbcommon` para IME, teclas mortas e layouts não-latinos.
-3. Histórico/frequência (`frecency`) e pinned apps.
-4. Suporte a Wayland (camada `wlr-layer-shell`) mantendo o backend X11.
-5. Cantos arredondados/transparência do painel: exige visual ARGB (depth 32) e
-   compositor; este servidor não oferece visual 32-bit, então só os elementos
-   internos (seleção/input/ícones) têm raio configurável hoje.
-6. Preview/ações extras (abrir com terminal, copiar Exec, etc.).
+1. Grid layout (`layout = "grid"`, `rows = N`) for many apps.
+2. `xkbcommon` for IME, dead keys and non-Latin layouts.
+3. History/frequency (`frecency`) and pinned apps.
+4. Wayland support (`wlr-layer-shell` layer) while keeping the X11 backend.
+5. Rounded corners/panel transparency: requires an ARGB visual (depth 32) and
+   a compositor; this server does not offer a 32-bit visual, so only the inner
+   elements (selection/input/icons) have a configurable radius today.
+6. Preview/extra actions (open with terminal, copy Exec, etc.).
 
-## 10. Riscos e mitigações
+## 10. Risks and mitigations
 
-| Risco | Mitigação |
-| ----- | --------- |
-| Grab de teclado não recebe eventos | Grab no `root` com `owner_events=true` + `SetInputFocus`; re-grab em `FocusIn` (igual dmenu) |
-| Janela anterior perde o foco ao fechar | Salvar `GetInputFocus` antes de abrir, `RevertToPointerRoot` e restaurar após destruir a janela (só se o launcher ainda detinha o foco) |
-| Ícones lentos no primeiro frame | Cache por `(nome, tamanho)`; carregar só o viewport; pré-aquecer em thread se necessário |
-| Fontes SVG ausentes (resvg sem `text`) | Ícones com `<text>` são raros; habilitar feature `text`/`system-fonts` se aparecer |
-| Tema sem PNG/SVG no tamanho | Escalonamento Lanczos (PNG) / render vetorial (SVG) + fallback `hicolor`/pixmaps |
-| HiDPI | `scale` no config (v1.1); hoje assume 1.0 e usa `icon_size`/`font_size` em px |
-| Teclas mortas/não-latinas | Limitação v1; caminho futuro: `xkbcommon` para keymap completo |
-| Tecla presa em outro cliente | Grab exclusivo no início; `XUngrabKeyboard` no cleanup (inclusive panic hook) |
+| Risk | Mitigation |
+| ---- | ---------- |
+| Keyboard grab does not receive events | Grab on `root` with `owner_events=true` + `SetInputFocus`; re-grab on `FocusIn` (like dmenu) |
+| Previous window loses focus on close | Save `GetInputFocus` before opening, `RevertToPointerRoot` and restore after destroying the window (only if the launcher still held focus) |
+| Slow icons on the first frame | Cache by `(name, size)`; load only the viewport; pre-warm in a thread if necessary |
+| Missing SVG fonts (resvg without `text`) | Icons with `<text>` are rare; enable the `text`/`system-fonts` feature if they show up |
+| Theme without a PNG/SVG at the size | Lanczos scaling (PNG) / vector rendering (SVG) + `hicolor`/pixmaps fallback |
+| HiDPI | `scale` in the config (v1.1); today assumes 1.0 and uses `icon_size`/`font_size` in px |
+| Dead/non-Latin keys | v1 limitation; future path: `xkbcommon` for a full keymap |
+| Key stuck in another client | Exclusive grab at startup; `XUngrabKeyboard` on cleanup (including the panic hook) |
 
-## 11. Como testar
+## 11. How to test
 
 ```bash
-cargo test                 # parser, matching, resolução de ícones
-cargo run --release        # abre a strip no monitor focado
-cargo run --release -- --dmenu < /usr/share/applications/lista.txt
+cargo test                 # parser, matching, icon resolution
+cargo run --release        # opens the strip on the focused monitor
+cargo run --release -- --dmenu < /usr/share/applications/list.txt
 ```
 
-Bind sugerido no i3 (`~/.config/i3/config`):
+Suggested i3 bind (`~/.config/i3/config`):
 
 ```
 bindsym $mod+d exec --no-startup-id i3-launcher

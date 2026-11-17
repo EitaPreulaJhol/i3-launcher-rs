@@ -127,7 +127,7 @@ impl Locale {
 /// Parse a `.desktop` file from disk.
 pub fn parse_file(path: &Path, id: &str, locale: &Locale) -> Result<DesktopEntry> {
     let content = std::fs::read_to_string(path)
-        .map_err(|e| anyhow!("não foi possível ler `{}`: {e}", path.display()))?;
+        .map_err(|e| anyhow!("could not read `{}`: {e}", path.display()))?;
     parse_str(&content, path, id, locale)
 }
 
@@ -167,7 +167,7 @@ pub fn parse_str(content: &str, source: &Path, id: &str, locale: &Locale) -> Res
     }
 
     if !seen_group {
-        bail!("{}: grupo [Desktop Entry] ausente", source.display());
+        bail!("{}: missing [Desktop Entry] group", source.display());
     }
 
     let entry_type = values
@@ -176,13 +176,13 @@ pub fn parse_str(content: &str, source: &Path, id: &str, locale: &Locale) -> Res
         .unwrap_or_else(|| "Application".to_string());
     let name = localized(&values, "Name", locale)
         .filter(|s| !s.is_empty())
-        .ok_or_else(|| anyhow!("{}: chave `Name` ausente", source.display()))?;
+        .ok_or_else(|| anyhow!("{}: missing `Name` key", source.display()))?;
     let exec = values
         .get("Exec")
         .cloned()
-        .ok_or_else(|| anyhow!("{}: chave `Exec` ausente", source.display()))?;
+        .ok_or_else(|| anyhow!("{}: missing `Exec` key", source.display()))?;
     // Reject unparsable Exec early instead of at launch time.
-    tokenize_exec(&exec).map_err(|e| anyhow!("{}: Exec inválido: {e}", source.display()))?;
+    tokenize_exec(&exec).map_err(|e| anyhow!("{}: invalid Exec: {e}", source.display()))?;
 
     Ok(DesktopEntry {
         id: id.to_string(),
@@ -296,7 +296,7 @@ pub fn tokenize_exec(exec: &str) -> Result<Vec<String>> {
                     current.push(other);
                     has_token = true;
                 }
-                None => bail!("barra invertida no fim da string"),
+                None => bail!("backslash at the end of the string"),
             },
             '\\' => {
                 if let Some(next) = chars.next() {
@@ -318,13 +318,13 @@ pub fn tokenize_exec(exec: &str) -> Result<Vec<String>> {
     }
 
     if in_quotes {
-        bail!("aspas duplas não fechadas");
+        bail!("unterminated double quote");
     }
     if has_token {
         args.push(current);
     }
     if args.is_empty() {
-        bail!("comando vazio");
+        bail!("empty command");
     }
     Ok(args)
 }

@@ -1,92 +1,92 @@
-# i3-launcher-rs — configuração de exemplo
+# i3-launcher-rs — example configuration
 #
-# Copie para ~/.config/i3-launcher/config.toml (ou passe --config <arquivo>).
-# Todos os campos são opcionais; os valores abaixo são os padrões, baseados em
-# `original_source/dmenu.rasi` (mesmo esquema visual da barra do i3/polybar).
+# Copy to ~/.config/i3-launcher/config.toml (or pass --config <file>).
+# Every field is optional; the values below are the defaults, based on
+# `original_source/dmenu.rasi` (the same visual scheme as the i3/polybar bar).
 #
-#   fundo #DEDEDE · texto #333333 · seleção #C5C5C5 (texto preto)
-#   borda da seleção de 1px #FF8C00 · cantos retos · altura 20px
+#   background #DEDEDE · text #333333 · selection #C5C5C5 (black text)
+#   1px selection border #FF8C00 · square corners · 20px height
 
 [bar]
-# Borda do monitor onde a strip aparece: "top" ou "bottom".
+# Monitor edge where the strip appears: "top" or "bottom".
 edge = "top"
-# Altura da strip em pixels (20 = barra fina; aumente para ícones maiores).
+# Strip height in pixels (20 = thin bar; increase it for larger icons).
 height = 20
-# Margem horizontal externa (aplicada dos dois lados).
+# Outer horizontal margin (applied on both sides).
 margin = 0
-# Distância até a borda. Use, por exemplo, 24 para ficar logo abaixo do i3bar.
+# Distance from the edge. Use, for example, 24 to sit just below i3bar.
 offset = 0
-# Largura: pixels ou porcentagem ("80%"). Sem esta chave ocupa a largura toda
-# menos as margens (window { width: 100%; } no rasi).
+# Width: pixels or a percentage ("80%"). Without this key it takes the whole
+# width minus the margins (window { width: 100%; } in the rasi).
 # width = "100%"
-# Alinhamento horizontal quando a largura é menor que o monitor.
+# Horizontal alignment when the width is narrower than the monitor.
 align = "left"          # left | center | right
 
 [monitor]
-# Monitor onde a strip aparece.
-# focused (janela ativa) | primary | pointer | índice do RandR | nome do conector
+# Monitor where the strip appears.
+# focused (active window) | primary | pointer | RandR index | connector name
 target = "focused"
 
 [appearance]
-# font: "Sans 9" no rasi. 9pt a 96dpi ≈ 12px (o tamanho aqui é em pixels).
+# font: "Sans 9" in the rasi. 9pt at 96dpi ≈ 12px (the size here is in pixels).
 font = "Sans"
 font_size = 12.0
-font_weight = 400       # 100..900 (400 normal, 700 negrito)
+font_weight = 400       # 100..900 (400 normal, 700 bold)
 prompt = "Run: "
-# Texto de ajuda exibido no campo de entrada quando a busca está vazia.
-# placeholder = "Digite para buscar…"
-# Tema de ícones; vazio detecta pelo GTK e cai para Adwaita/hicolor.
+# Hint text shown in the input field while the query is empty.
+# placeholder = "Type to search…"
+# Icon theme; empty auto-detects via GTK and falls back to Adwaita/hicolor.
 icon_theme = ""
-# rofi usa ~1.2em no element-icon (1.2 x 12px ≈ 14px).
+# rofi uses ~1.2em for element-icon (1.2 x 12px ≈ 14px).
 icon_size = 14
 show_icons = true
 
 # ---------------------------------------------------------------------------
-# Estilo: cores, espaçamentos, raios e bordas.
+# Style: colors, spacing, radii and borders.
 # ---------------------------------------------------------------------------
 [style]
-# Tema pronto (veja `i3-launcher --themes`). Cores definidas explicitamente
-# nesta seção vencem o tema. Vazio = usar o padrão do dmenu.rasi (abaixo).
+# Ready-made theme (see `i3-launcher --themes`). Colors set explicitly in this
+# section win over the theme. Empty = use the dmenu.rasi default (below).
 theme = ""
 
-# Cores do padrão, listadas para referência. Descomente e altere qualquer uma
-# para sobrescrever apenas aquele detalhe.
-# bg = "#dedede"           # fundo da strip
-# fg = "#333333"           # texto dos itens
-# prompt_fg = "#333333"    # texto do prompt
-# input_fg = "#333333"     # texto digitado
-# cursor = "#333333"       # cursor de texto
+# Default colors, listed for reference. Uncomment and change any of them to
+# override just that detail.
+# bg = "#dedede"           # strip background
+# fg = "#333333"           # item text
+# prompt_fg = "#333333"    # prompt text
+# input_fg = "#333333"     # typed text
+# cursor = "#333333"       # text cursor
 # placeholder_fg = "#333333"
-# selection_bg = "#c5c5c5" # fundo do item selecionado
-# selection_fg = "#000000" # texto do item selecionado
-# scroll_fg = "#333333"    # setas < e >
-# O rasi não destaca os caracteres casados; descomente para habilitar.
+# selection_bg = "#c5c5c5" # selected item background
+# selection_fg = "#000000" # selected item text
+# scroll_fg = "#333333"    # < and > arrows
+# The rasi does not highlight matched characters; uncomment to enable it.
 # highlight_fg = "#ff8c00"
 
-# Geometria.
-padding = 2.0            # margem interna da strip (window padding: 2px)
-gap = 0.0                # espaço entre ícone/texto, prompt/input etc.
-item_gap = 0.0           # espaço entre células (listview spacing: 0px)
-item_padding = 10.0      # padding horizontal da célula (element: 0px 10px)
-# Largura do campo de busca (entry: width 10em ≈ 120px).
+# Geometry.
+padding = 2.0            # inner strip margin (window padding: 2px)
+gap = 0.0                # spacing between icon/text, prompt/input, etc.
+item_gap = 0.0           # spacing between cells (listview spacing: 0px)
+item_padding = 10.0      # horizontal cell padding (element: 0px 10px)
+# Search field width (entry: width 10em ≈ 120px).
 search_width = 120
-cursor_width = 1.5       # largura do cursor de texto
-icon_radius = 0.0        # raio do ícone-placeholder (0 = quadrado)
+cursor_width = 1.5       # text cursor width
+icon_radius = 0.0        # placeholder icon radius (0 = square)
 
-# Destaque do item selecionado (element selected):
-# fundo #C5C5C5, texto preto, borda de 1px laranja, cantos retos.
+# Selected item highlight (element selected):
+# #C5C5C5 background, black text, 1px orange border, square corners.
 selection_radius = 0.0
 selection_border_width = 1.0
 selection_border = "#ff8c00"
 
-# Caixa do campo de entrada. Sem `input_bg` e com borda 0, não é desenhada
-# (o rasi não define uma caixa para o entry).
+# Input field box. Without `input_bg` and with a 0 border it is not drawn
+# (the rasi does not define a box for the entry).
 # input_bg = "#00000033"
 input_radius = 0.0
 input_border_width = 0.0
 input_border = "#c5c5c5"
 
-# Borda interna ao redor de toda a strip (o rasi não usa borda na janela).
+# Inner border around the whole strip (the rasi uses no window border).
 panel_border_width = 0.0
 panel_border = "#c5c5c5"
 
@@ -94,16 +94,16 @@ panel_border = "#c5c5c5"
 # prefix | substring | fuzzy
 match_mode = "fuzzy"
 case_sensitive = false
-# Ordena por score. false mantém a ordem de leitura (como o dmenu).
+# Sort by score. false keeps the reading order (like dmenu).
 sort = true
-# Terminal usado por entradas com Terminal=true (ex.: "alacritty -e").
-# Vazio usa $TERMINAL e depois procura um terminal conhecido.
+# Terminal used by entries with Terminal=true (e.g. "alacritty -e").
+# Empty uses $TERMINAL and then probes for a known terminal.
 terminal = ""
-# Imprime a seleção em vez de executar (útil para scripts/testes).
+# Print the selection instead of running it (useful for scripts/tests).
 print_selection = false
-# Shell usado por `--dmenu --exec`.
+# Shell used by `--dmenu --exec`.
 shell = "/bin/sh"
-# Ícone genérico quando o arquivo .desktop não tem ícone resolvível.
+# Generic icon when the .desktop file has no resolvable icon.
 fallback_icon = "application-x-executable"
-# Limite de resultados (0 = sem limite).
+# Result limit (0 = no limit).
 max_results = 0

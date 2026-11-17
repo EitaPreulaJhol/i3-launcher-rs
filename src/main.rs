@@ -49,12 +49,12 @@ fn run() -> Result<i32> {
     cli::apply(&options, &mut cfg)?;
     debug(|| {
         let theme = if cfg.style.theme.is_empty() {
-            "padrão (dmenu.rasi)"
+            "default (dmenu.rasi)"
         } else {
             &cfg.style.theme
         };
         format!(
-            "config: {} ms (tema: {theme})",
+            "config: {} ms (theme: {theme})",
             startup.elapsed().as_millis()
         )
     });
@@ -68,14 +68,14 @@ fn run() -> Result<i32> {
         app::load_entries()
     };
     let items = if options.dmenu {
-        app::read_stdin(options.exec).context("não foi possível ler o stdin")?
+        app::read_stdin(options.exec).context("could not read stdin")?
     } else {
         app::from_entries(&entries)
     };
 
     debug(|| {
         format!(
-            "itens={} em {} ms",
+            "items={} in {} ms",
             items.len(),
             scan_start.elapsed().as_millis()
         )
@@ -85,7 +85,7 @@ fn run() -> Result<i32> {
     let x11 = X11::create(&cfg)?;
     debug(|| {
         format!(
-            "monitor={} tamanho={:?} (janela em {} ms)",
+            "monitor={} size={:?} (window in {} ms)",
             x11.monitor_name(),
             x11.size(),
             x11_start.elapsed().as_millis()
@@ -93,14 +93,13 @@ fn run() -> Result<i32> {
     });
 
     let (width, height) = x11.size();
-    let mut surface =
-        Pixmap::new(width, height).context("não foi possível alocar o framebuffer")?;
+    let mut surface = Pixmap::new(width, height).context("could not allocate the framebuffer")?;
     // Fonts are loaded after the grab so no keystroke is lost.
     let font_start = Instant::now();
     let mut painter = Painter::new(&cfg);
     debug(|| {
         format!(
-            "fontes/tema de ícones ({}) em {} ms",
+            "fonts/icon theme ({}) in {} ms",
             painter.icon_theme(),
             font_start.elapsed().as_millis()
         )
@@ -116,7 +115,7 @@ fn run() -> Result<i32> {
                 let paths = app::path_items();
                 debug(|| {
                     format!(
-                        "comandos do PATH: {} em {} ms",
+                        "PATH commands: {} in {} ms",
                         paths.len(),
                         start.elapsed().as_millis()
                     )
@@ -133,7 +132,7 @@ fn run() -> Result<i32> {
     x11.blit(&pixmap_to_x11(&surface))?;
     debug(|| {
         format!(
-            "primeiro frame: {} ms (total {} ms)",
+            "first frame: {} ms (total {} ms)",
             first_frame.elapsed().as_millis(),
             startup.elapsed().as_millis()
         )
@@ -200,7 +199,7 @@ fn handle_outcome(
         Outcome::LaunchApp(index) => {
             let entry = entries
                 .get(index)
-                .context("entrada .desktop selecionada não existe mais")?;
+                .context("the selected .desktop entry no longer exists")?;
             let command = launch::build(entry, cfg)?;
             if cfg.behavior.print_selection {
                 println!("{}", entry.name);

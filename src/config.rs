@@ -73,12 +73,12 @@ impl FromStr for Color {
         let hex = s
             .strip_prefix('#')
             .or_else(|| s.strip_prefix("0x"))
-            .ok_or_else(|| format!("cor inválida `{s}`: use #rrggbb, #rrggbbaa ou #rgb"))?;
+            .ok_or_else(|| format!("invalid color `{s}`: use #rrggbb, #rrggbbaa or #rgb"))?;
 
         let digit = |c: char| {
             c.to_digit(16)
                 .map(|d| d as u8)
-                .ok_or_else(|| format!("cor inválida `{s}`: caractere não hexadecimal"))
+                .ok_or_else(|| format!("invalid color `{s}`: non-hexadecimal character"))
         };
 
         let mut chars = hex.chars();
@@ -99,7 +99,7 @@ impl FromStr for Color {
                 }
                 out
             }
-            n => return Err(format!("cor inválida `{s}`: {n} dígitos")),
+            n => return Err(format!("invalid color `{s}`: {n} digits")),
         };
 
         Ok(Self {
@@ -161,12 +161,12 @@ impl FromStr for Dimension {
             let v: f32 = pct
                 .trim()
                 .parse()
-                .map_err(|_| format!("porcentagem inválida `{s}`"))?;
+                .map_err(|_| format!("invalid percentage `{s}`"))?;
             return Ok(Dimension::Percent(v));
         }
         let px: u32 = s
             .parse()
-            .map_err(|_| format!("dimensão inválida `{s}` (use px ou %)"))?;
+            .map_err(|_| format!("invalid dimension `{s}` (use px or %)"))?;
         Ok(Dimension::Px(px))
     }
 }
@@ -178,7 +178,7 @@ impl<'de> Deserialize<'de> for Dimension {
             type Value = Dimension;
 
             fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.write_str("um número de pixels ou uma string percentual (ex.: \"80%\")")
+                f.write_str("a number of pixels or a percentage string (e.g. \"80%\")")
             }
 
             fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<Self::Value, E> {
@@ -214,7 +214,7 @@ macro_rules! impl_enum_serde {
                 match s.trim().to_ascii_lowercase().as_str() {
                     $($text => Ok($name::$variant),)+
                     other => Err(format!(
-                        "valor inválido `{other}`; esperado um de: {}",
+                        "invalid value `{other}`; expected one of: {}",
                         [$($text),+].join(", ")
                     )),
                 }
@@ -302,7 +302,7 @@ impl FromStr for MonitorTarget {
                 if let Ok(idx) = s.parse::<usize>() {
                     Ok(MonitorTarget::Index(idx))
                 } else if s.is_empty() {
-                    Err("monitor vazio".into())
+                    Err("empty monitor".into())
                 } else {
                     Ok(MonitorTarget::Name(s.to_string()))
                 }
@@ -549,9 +549,9 @@ impl Config {
     pub fn load(explicit: Option<&Path>, theme: Option<&str>) -> Result<Self> {
         if let Some(path) = explicit {
             let raw = std::fs::read_to_string(path)
-                .with_context(|| format!("não foi possível ler `{}`", path.display()))?;
+                .with_context(|| format!("could not read `{}`", path.display()))?;
             return Self::from_str(&raw, theme)
-                .with_context(|| format!("config `{}` inválido", path.display()));
+                .with_context(|| format!("invalid config `{}`", path.display()));
         }
 
         for path in Self::search_paths() {
@@ -559,9 +559,9 @@ impl Config {
                 continue;
             }
             let raw = std::fs::read_to_string(&path)
-                .with_context(|| format!("não foi possível ler `{}`", path.display()))?;
+                .with_context(|| format!("could not read `{}`", path.display()))?;
             return Self::from_str(&raw, theme)
-                .with_context(|| format!("config `{}` inválido", path.display()));
+                .with_context(|| format!("invalid config `{}`", path.display()));
         }
 
         Self::from_str("", theme)
@@ -611,13 +611,11 @@ impl Config {
 fn style_table(value: &mut toml::Value) -> Result<&mut toml::value::Table> {
     let root = value
         .as_table_mut()
-        .context("o config TOML deve ser uma tabela")?;
+        .context("the TOML config must be a table")?;
     let style = root
         .entry("style".to_string())
         .or_insert_with(|| toml::Value::Table(Default::default()));
-    style
-        .as_table_mut()
-        .context("`[style]` deve ser uma tabela")
+    style.as_table_mut().context("`[style]` must be a table")
 }
 
 fn set_theme(value: &mut toml::Value, theme: &str) -> Result<()> {
@@ -645,7 +643,7 @@ fn apply_theme(value: &mut toml::Value) -> Result<()> {
 
     let palette = crate::theme::find(&name).ok_or_else(|| {
         anyhow::anyhow!(
-            "tema desconhecido `{name}`; disponíveis: {}",
+            "unknown theme `{name}`; available: {}",
             crate::theme::names().collect::<Vec<_>>().join(", ")
         )
     })?;
@@ -666,7 +664,7 @@ mod tests {
     #[test]
     fn example_config_is_valid_and_matches_defaults() {
         let raw = include_str!("../config.example.toml");
-        let parsed = Config::from_str(raw, None).expect("config.example.toml inválido");
+        let parsed = Config::from_str(raw, None).expect("invalid config.example.toml");
         let defaults = Config::default();
         // Keep the documented example in sync with the compiled defaults.
         assert_eq!(parsed.bar.edge, defaults.bar.edge);
@@ -685,7 +683,7 @@ mod tests {
         for name in crate::theme::names() {
             let raw = format!("[style]\ntheme = \"{name}\"\n");
             Config::from_str(&raw, None)
-                .unwrap_or_else(|err| panic!("tema `{name}` falhou: {err:#}"));
+                .unwrap_or_else(|err| panic!("theme `{name}` failed: {err:#}"));
         }
     }
 
@@ -716,9 +714,9 @@ mod tests {
 
     #[test]
     fn unknown_theme_lists_available_names() {
-        let err = Config::from_str("[style]\ntheme = \"nao-existe\"\n", None).unwrap_err();
+        let err = Config::from_str("[style]\ntheme = \"does-not-exist\"\n", None).unwrap_err();
         let message = format!("{err:#}");
-        assert!(message.contains("nao-existe"));
+        assert!(message.contains("does-not-exist"));
         assert!(message.contains("catppuccin-mocha"));
     }
 

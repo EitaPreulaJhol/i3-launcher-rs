@@ -725,10 +725,10 @@ mod tests {
         let left = app.layout.cells_x();
         let right = app.layout.cells_right();
         for cell in &app.layout.cells {
-            assert!(cell.x + 0.1 >= left, "célula antes do viewport: {cell:?}");
+            assert!(cell.x + 0.1 >= left, "cell before the viewport: {cell:?}");
             assert!(
                 cell.x + cell.width <= right + 0.1,
-                "célula depois do viewport: {cell:?}"
+                "cell after the viewport: {cell:?}"
             );
         }
     }

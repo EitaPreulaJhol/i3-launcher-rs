@@ -19,7 +19,7 @@ pub struct LaunchCommand {
 /// Resolve the `Exec` line of an entry (field codes, terminal wrapper).
 pub fn build(entry: &DesktopEntry, cfg: &Config) -> Result<LaunchCommand> {
     let tokens = tokenize_exec(&entry.exec)
-        .with_context(|| format!("Exec inválido em `{}`", entry.source.display()))?;
+        .with_context(|| format!("invalid Exec in `{}`", entry.source.display()))?;
     let ctx = ExecContext {
         name: &entry.name,
         icon: entry.icon.as_deref(),
@@ -27,7 +27,7 @@ pub fn build(entry: &DesktopEntry, cfg: &Config) -> Result<LaunchCommand> {
     };
     let mut argv = expand_exec(&tokens, &ctx);
     if argv.is_empty() {
-        bail!("`{}` não produziu nenhum comando", entry.name);
+        bail!("`{}` produced no command", entry.name);
     }
 
     if entry.terminal {
@@ -70,13 +70,13 @@ pub fn terminal_command(cfg: &Config) -> Result<Vec<String>> {
             return Ok(parts);
         }
     }
-    bail!("nenhum terminal encontrado; defina `behavior.terminal` no config")
+    bail!("no terminal found; set `behavior.terminal` in the config")
 }
 
 fn split_command(raw: &str) -> Result<Vec<String>> {
     let parts: Vec<String> = raw.split_whitespace().map(str::to_string).collect();
     if parts.is_empty() {
-        bail!("comando vazio");
+        bail!("empty command");
     }
     Ok(parts)
 }
@@ -103,7 +103,7 @@ pub fn spawn(command: &LaunchCommand) -> Result<()> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .with_context(|| format!("não foi possível executar `{}`", command.argv.join(" ")))?;
+        .with_context(|| format!("could not run `{}`", command.argv.join(" ")))?;
     Ok(())
 }
 
@@ -116,7 +116,7 @@ pub fn spawn_shell(line: &str, shell: &str) -> Result<()> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .with_context(|| format!("não foi possível executar `{line}`"))?;
+        .with_context(|| format!("could not run `{line}`"))?;
     Ok(())
 }
 

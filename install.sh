@@ -1,13 +1,13 @@
 #!/bin/sh
-# Instala o i3-launcher-rs no sistema.
+# Install i3-launcher-rs on the system.
 #
-# Uso:
-#   ./install.sh                 # compila (release) e instala em ~/.local/bin
-#   ./install.sh --no-build      # instala o binário já compilado
+# Usage:
+#   ./install.sh                 # build (release) and install into ~/.local/bin
+#   ./install.sh --no-build      # install the already-built binary
 #   PREFIX=/usr/local ./install.sh
-#   DESTDIR=/tmp/pkg PREFIX=/usr ./install.sh   # empacotamento
+#   DESTDIR=/tmp/pkg PREFIX=/usr ./install.sh   # packaging
 #
-# Variáveis: PREFIX, BINDIR, DESTDIR, CARGO, CARGO_TARGET_DIR.
+# Variables: PREFIX, BINDIR, DESTDIR, CARGO, CARGO_TARGET_DIR.
 
 set -eu
 
@@ -21,16 +21,16 @@ BIN=i3-launcher
 
 usage() {
     cat <<EOF
-Uso: $0 [--no-build] [--help]
+Usage: $0 [--no-build] [--help]
 
-Compila o projeto (release) e instala o binário '$BIN'.
+Builds the project (release) and installs the '$BIN' binary.
 
-Variáveis de ambiente:
-  PREFIX           diretório base de instalação (padrão: \$HOME/.local)
-  BINDIR           diretório do binário (padrão: \$PREFIX/bin)
-  DESTDIR          prefixo de empacotamento (padrão: vazio)
-  CARGO            comando do cargo (padrão: cargo)
-  CARGO_TARGET_DIR diretório de build do cargo
+Environment variables:
+  PREFIX           base installation directory (default: \$HOME/.local)
+  BINDIR           binary directory (default: \$PREFIX/bin)
+  DESTDIR          packaging prefix (default: empty)
+  CARGO            cargo command (default: cargo)
+  CARGO_TARGET_DIR cargo build directory
 EOF
 }
 
@@ -43,7 +43,7 @@ for arg in "$@"; do
             exit 0
             ;;
         *)
-            echo "install.sh: opção desconhecida '$arg'" >&2
+            echo "install.sh: unknown option '$arg'" >&2
             usage >&2
             exit 2
             ;;
@@ -51,7 +51,7 @@ for arg in "$@"; do
 done
 
 if [ "$BUILD" -eq 1 ]; then
-    echo "==> compilando (release)"
+    echo "==> building (release)"
     "$CARGO" build --release --locked --manifest-path "$SCRIPT_DIR/Cargo.toml"
 fi
 
@@ -59,19 +59,19 @@ SOURCE="$TARGET_DIR/release/$BIN"
 DESTINATION="$DESTDIR$BINDIR/$BIN"
 
 if [ ! -f "$SOURCE" ]; then
-    echo "install.sh: '$SOURCE' não existe; rode sem --no-build" >&2
+    echo "install.sh: '$SOURCE' does not exist; rerun without --no-build" >&2
     exit 1
 fi
 
-echo "==> instalando em $DESTINATION"
+echo "==> installing into $DESTINATION"
 install -Dm755 "$SOURCE" "$DESTINATION"
 
 if [ -z "$DESTDIR" ] && [ "$BINDIR" != "$HOME/.local/bin" ]; then
     case ":$PATH:" in
         *":$BINDIR:"*) ;;
-        *) echo "dica: adicione '$BINDIR' ao PATH" ;;
+        *) echo "hint: add '$BINDIR' to PATH" ;;
     esac
 fi
 
-echo "pronto. No ~/.config/i3/config:"
+echo "done. In ~/.config/i3/config:"
 echo "    bindsym \$mod+d exec --no-startup-id $BIN"

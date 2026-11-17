@@ -39,7 +39,7 @@ fn unknown_flag_fails() {
     let output = launcher().arg("--definitely-not-a-flag").output().unwrap();
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("opção desconhecida"));
+    assert!(stderr.contains("unknown option"));
 }
 
 #[test]
@@ -47,5 +47,5 @@ fn missing_value_fails() {
     let output = launcher().arg("--prompt").output().unwrap();
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("exige um valor"));
+    assert!(stderr.contains("requires a value"));
 }
