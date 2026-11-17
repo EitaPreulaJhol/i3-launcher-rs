@@ -112,14 +112,10 @@ impl X11 {
         )
         .context("could not create the launcher window")?;
 
-        if single_instance {
-            // The selection owner is released by the server when this client
-            // disconnects, so a crashed instance never leaves a stale lock.
-            conn.set_selection_owner(win, instance_atom, CURRENT_TIME)?;
-            if instance_owner(&conn, instance_atom)? != win {
-                // Lost a startup race to another instance.
-                return Ok(None);
-            }
+        if single_instance && !claim_instance_selection(&conn, instance_atom, win)? {
+            // Another instance won the atomic claim; this window was never
+            // mapped or focused, and dropping `conn` destroys it.
+            return Ok(None);
         }
 
         // Identification, useful for debug tools and window rules.
@@ -337,4 +333,37 @@ pub fn intern_atom<C: Connection>(conn: &C, name: &[u8]) -> Result<u32> {
 /// Current owner of `atom`, or [`x11rb::NONE`] when the selection is free.
 fn instance_owner<C: Connection>(conn: &C, atom: u32) -> Result<Window> {
     Ok(conn.get_selection_owner(atom)?.reply()?.owner)
+}
+
+/// Atomically claim the instance selection, so two simultaneous launches
+/// cannot both observe an empty owner and proceed to grab/focus the keyboard.
+fn claim_instance_selection<C: Connection>(conn: &C, atom: u32, window: Window) -> Result<bool> {
+    conn.grab_server()?.check()?;
+
+    let claim = (|| -> Result<bool> {
+        if instance_owner(conn, atom)? != x11rb::NONE {
+            return Ok(false);
+        }
+        conn.set_selection_owner(window, atom, CURRENT_TIME)?
+            .check()?;
+        Ok(instance_owner(conn, atom)? == window)
+    })();
+
+    // Always release the server grab, including when an ownership request
+    // fails, or the entire X session would appear frozen.
+    let ungrab = conn
+        .ungrab_server()
+        .context("could not send X server ungrab")
+        .and_then(|cookie| cookie.check().context("could not release X server grab"));
+
+    match claim {
+        Ok(claimed) => {
+            ungrab?;
+            Ok(claimed)
+        }
+        Err(error) => {
+            let _ = ungrab;
+            Err(error)
+        }
+    }
 }
