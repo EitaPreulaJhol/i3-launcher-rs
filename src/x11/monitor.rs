@@ -294,7 +294,7 @@ mod tests {
                 x: 0,
                 y: 0,
                 width: 1920,
-                height: 44
+                height: 20
             }
         );
     }
