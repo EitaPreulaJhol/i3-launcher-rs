@@ -26,6 +26,9 @@ software.
 - Modo dmenu (`--dmenu`) para usar em pipes: lê linhas do stdin e imprime a seleção.
 - **Estilo no TOML**: seção `[style]` com cores, raios, bordas, espaçamentos,
   peso da fonte e 14 temas prontos (`--themes`).
+- **Tema padrão fiel ao `original_source/dmenu.rasi`**: barra clara
+  (`#DEDEDE`/`#333333`), seleção `#C5C5C5` com texto preto e borda de 1px
+  `#FF8C00`, cantos retos, 20px de altura e fonte `Sans 9`.
 - Config TOML com validação (`deny_unknown_fields`), flags compatíveis com dmenu.
 - Início rápido: ~25 ms até o primeiro frame (release, 38 apps, fontes já em cache do SO).
 
@@ -89,40 +92,54 @@ chaves.
 
 ## Estilo e temas
 
-Tudo que é visual fica em `[style]`: cores, espaçamentos, raios e bordas.
-`theme` escolhe uma paleta pronta; qualquer cor escrita na seção vence a paleta.
+Tudo que é visual fica em `[style]`. O padrão (sem config) reproduz o
+`original_source/dmenu.rasi`, o mesmo esquema da barra do i3/polybar:
+
+```toml
+[appearance]
+font = "Sans"                 # "Sans 9" no rasi (9pt ≈ 12px a 96dpi)
+font_size = 12.0
+icon_size = 14                # ~1.2em
+
+[style]
+theme = ""                    # vazio = padrão do dmenu.rasi
+padding = 2.0                 # window { padding: 2px; }
+gap = 0.0
+item_gap = 0.0                # listview { spacing: 0px; }
+item_padding = 10.0           # element { padding: 0px 10px; }
+search_width = 120            # entry { width: 10em; }
+selection_radius = 0.0        # cantos retos
+selection_border_width = 1.0
+selection_border = "#ff8c00"  # element selected
+```
+
+As cores do padrão são `bg = "#dedede"`, `fg = "#333333"`,
+`selection_bg = "#c5c5c5"` e `selection_fg = "#000000"`; o rasi não destaca os
+caracteres casados, então `highlight_fg` é opcional e vem desligado.
+
+Qualquer cor escrita em `[style]` vence o tema. Para um visual arredondado,
+caixa de entrada e borda no painel:
 
 ```toml
 [style]
-theme = "gruvbox-dark"        # vazio = usar só as cores abaixo
-highlight_fg = "#fe8019"      # caracteres que casaram com a busca
-
-selection_radius = 0.0        # 0 = cantos retos (padrão)
+theme = "tokyo-night"
+selection_radius = 10.0
 selection_border_width = 2.0
-selection_border = "#fabd2f"
-
-input_bg = "#00000055"        # caixa atrás do campo de entrada
-input_radius = 0.0            # aumente para cantos arredondados
+selection_border = "#9ece6a"
+input_bg = "#00000066"
+input_radius = 10.0
 input_border_width = 1.5
-input_border = "#fabd2f"
-
-panel_border_width = 2.0      # borda interna ao redor da strip
-panel_border = "#504945"
-
-padding = 8.0                 # margem interna
-item_padding = 10.0           # padding da célula
-search_width = "22%"          # largura do campo de busca (px ou %)
-cursor_width = 2.0
-icon_radius = 0.0             # ícone-placeholder (0 = quadrado)
-
-[appearance]
-font_weight = 600             # 100..900
+input_border = "#7aa2f7"
+panel_border_width = 2.0
+panel_border = "#7aa2f7"
+highlight_fg = "#9ece6a"      # habilita o destaque da busca
 ```
 
 Temas incluídos: `catppuccin-mocha`, `catppuccin-macchiato`,
 `catppuccin-frappe`, `catppuccin-latte`, `gruvbox-dark`, `gruvbox-light`,
 `nord`, `dracula`, `tokyo-night`, `solarized-dark`, `solarized-light`,
-`one-dark`, `rose-pine` e `adwaita-dark`.
+`one-dark`, `rose-pine` e `adwaita-dark`. O padrão do rasi não é um tema
+nomeado (`theme = ""`).
 
 ```bash
 i3-launcher --themes

@@ -49,7 +49,7 @@ fn run() -> Result<i32> {
     cli::apply(&options, &mut cfg)?;
     debug(|| {
         let theme = if cfg.style.theme.is_empty() {
-            "custom"
+            "padrão (dmenu.rasi)"
         } else {
             &cfg.style.theme
         };

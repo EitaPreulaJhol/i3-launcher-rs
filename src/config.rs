@@ -383,13 +383,15 @@ pub struct Appearance {
 impl Default for Appearance {
     fn default() -> Self {
         Self {
-            font: "DejaVu Sans".to_string(),
-            font_size: 14.0,
+            // font: "Sans 9" in the rasi; 9pt at 96dpi is ~12px.
+            font: "Sans".to_string(),
+            font_size: 12.0,
             font_weight: 400,
             prompt: "Run: ".to_string(),
             placeholder: None,
             icon_theme: String::new(),
-            icon_size: 24,
+            // rofi's element-icon is ~1.2em (1.2 x 12px).
+            icon_size: 14,
             show_icons: true,
         }
     }
@@ -414,8 +416,9 @@ pub struct Style {
     pub selection_bg: Color,
     pub selection_fg: Color,
     pub scroll_fg: Color,
-    /// Color of the characters matched by the query.
-    pub highlight_fg: Color,
+    /// Color of the characters matched by the query. Omit to disable match
+    /// highlighting (the default matches `original_source/dmenu.rasi`).
+    pub highlight_fg: Option<Color>,
 
     /// Inner border around the whole strip.
     pub panel_border: Color,
@@ -453,32 +456,39 @@ impl Default for Style {
     fn default() -> Self {
         Self {
             theme: String::new(),
-            bg: Color::rgb(0x1e, 0x1e, 0x2e),
-            fg: Color::rgb(0xcd, 0xd6, 0xf4),
-            prompt_fg: Color::rgb(0xf9, 0xe2, 0xaf),
-            input_fg: Color::rgb(0xcd, 0xd6, 0xf4),
-            cursor: Color::rgb(0xf5, 0xe0, 0xdc),
-            placeholder_fg: Color::rgb(0x6c, 0x70, 0x86),
-            selection_bg: Color::rgb(0x89, 0xb4, 0xfa),
-            selection_fg: Color::rgb(0x1e, 0x1e, 0x2e),
-            scroll_fg: Color::rgb(0x6c, 0x70, 0x86),
-            highlight_fg: Color::rgb(0xfa, 0xb3, 0x87),
-            panel_border: Color::rgb(0x11, 0x11, 0x1b),
+            // Palette and spacing from original_source/dmenu.rasi:
+            // background #DEDEDE, text #333333, selected #C5C5C5 with
+            // 1px #FF8C00 border, square corners, 2px window padding and
+            // 0px 10px element padding.
+            bg: Color::rgb(0xde, 0xde, 0xde),
+            fg: Color::rgb(0x33, 0x33, 0x33),
+            prompt_fg: Color::rgb(0x33, 0x33, 0x33),
+            input_fg: Color::rgb(0x33, 0x33, 0x33),
+            cursor: Color::rgb(0x33, 0x33, 0x33),
+            placeholder_fg: Color::rgb(0x33, 0x33, 0x33),
+            selection_bg: Color::rgb(0xc5, 0xc5, 0xc5),
+            selection_fg: Color::rgb(0x00, 0x00, 0x00),
+            scroll_fg: Color::rgb(0x33, 0x33, 0x33),
+            highlight_fg: None,
+            panel_border: Color::rgb(0xc5, 0xc5, 0xc5),
             panel_border_width: 0.0,
-            selection_border: Color::rgb(0x45, 0x47, 0x5a),
-            selection_border_width: 0.0,
+            selection_border: Color::rgb(0xff, 0x8c, 0x00),
+            selection_border_width: 1.0,
             selection_radius: 0.0,
             input_bg: None,
-            input_border: Color::rgb(0x89, 0xb4, 0xfa),
+            input_border: Color::rgb(0xc5, 0xc5, 0xc5),
             input_border_width: 0.0,
             input_radius: 0.0,
             icon_radius: 0.0,
-            search_width: Dimension::Percent(22.0),
+            // `entry { expand: false; width: 10em; }` with Sans 9 (~12px).
+            search_width: Dimension::Px(120),
             cursor_width: 1.5,
-            padding: 8.0,
-            gap: 8.0,
-            item_gap: 4.0,
-            item_padding: 8.0,
+            // window { padding: 2px; } and listview { spacing: 0px; }
+            padding: 2.0,
+            gap: 0.0,
+            item_gap: 0.0,
+            // element { padding: 0px 10px; }
+            item_padding: 10.0,
         }
     }
 }
@@ -713,8 +723,9 @@ mod tests {
     }
 
     #[test]
-    fn default_search_width_is_compact() {
-        assert_eq!(Style::default().search_width, Dimension::Percent(22.0));
+    fn default_search_width_is_10em() {
+        // entry { width: 10em; } with the rasi's Sans 9 (~12px) font.
+        assert_eq!(Style::default().search_width, Dimension::Px(120));
     }
 
     #[test]
@@ -723,6 +734,29 @@ mod tests {
         assert_eq!(style.selection_radius, 0.0);
         assert_eq!(style.input_radius, 0.0);
         assert_eq!(style.icon_radius, 0.0);
+    }
+
+    #[test]
+    fn defaults_match_dmenu_rasi() {
+        let style = Style::default();
+        assert_eq!(style.bg, "#dedede".parse().unwrap());
+        assert_eq!(style.fg, "#333333".parse().unwrap());
+        assert_eq!(style.selection_bg, "#c5c5c5".parse().unwrap());
+        assert_eq!(style.selection_fg, "#000000".parse().unwrap());
+        assert_eq!(style.selection_border, "#ff8c00".parse().unwrap());
+        assert_eq!(style.selection_border_width, 1.0);
+        assert_eq!(style.padding, 2.0);
+        assert_eq!(style.gap, 0.0);
+        assert_eq!(style.item_gap, 0.0);
+        assert_eq!(style.item_padding, 10.0);
+        assert_eq!(style.search_width, Dimension::Px(120));
+        assert_eq!(style.highlight_fg, None);
+
+        let appearance = Appearance::default();
+        assert_eq!(appearance.font, "Sans");
+        assert_eq!(appearance.font_size, 12.0);
+        assert_eq!(appearance.icon_size, 14);
+        assert_eq!(BarConfig::default().height, 20);
     }
 
     #[test]
