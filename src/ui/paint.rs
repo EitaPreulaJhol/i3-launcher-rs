@@ -2,12 +2,12 @@
 
 use std::collections::HashMap;
 
-use cosmic_text::{Attrs, Buffer, Family, FontSystem, Metrics, Shaping, SwashCache};
+use cosmic_text::{Attrs, Buffer, Family, FontSystem, Metrics, Shaping, SwashCache, Weight};
 use tiny_skia::{
-    FillRule, FilterQuality, Paint, PathBuilder, Pixmap, PixmapPaint, Rect, Transform,
+    FillRule, FilterQuality, Paint, PathBuilder, Pixmap, PixmapPaint, Rect, Stroke, Transform,
 };
 
-use crate::config::{Appearance, Color, Config};
+use crate::config::{Color, Config, Style};
 use crate::icons::IconCache;
 use crate::ui::state::App;
 
@@ -17,6 +17,7 @@ pub struct Painter {
     icons: IconCache,
     font_family: String,
     font_size: f32,
+    font_weight: u16,
     line_height: f32,
     /// Measured label widths, keyed by text.
     text_widths: HashMap<String, f32>,
@@ -34,6 +35,7 @@ impl Painter {
             icons: IconCache::new(&cfg.appearance, &cfg.behavior.fallback_icon),
             font_family: cfg.appearance.font.clone(),
             font_size,
+            font_weight: cfg.appearance.font_weight.clamp(100, 1000),
             line_height,
             text_widths: HashMap::new(),
         }
@@ -56,7 +58,7 @@ impl Painter {
             return *width;
         }
         let family = self.font_family.clone();
-        let attrs = Attrs::new().family(Family::Name(&family));
+        let attrs = self.attrs(&family);
         let metrics = Metrics::new(self.font_size, self.line_height);
         let mut buffer = Buffer::new(&mut self.font_system, metrics);
         buffer.set_size(None, None);
@@ -71,22 +73,62 @@ impl Painter {
         width
     }
 
+    fn attrs<'a>(&self, family: &'a str) -> Attrs<'a> {
+        Attrs::new()
+            .family(Family::Name(family))
+            .weight(Weight(self.font_weight))
+    }
+
     /// Draw the whole UI for `app` into `target`.
     pub fn paint(&mut self, target: &mut Pixmap, app: &App, cfg: &Config) {
+        let width = target.width() as f32;
         let height = target.height() as f32;
         let appearance = &cfg.appearance;
-
-        target.fill(appearance.bg.to_tiny_skia());
-
+        let style = &cfg.style;
         let layout = &app.layout;
+
+        target.fill(style.bg.to_tiny_skia());
+
         if !appearance.prompt.is_empty() {
             self.draw_text(
                 target,
                 &appearance.prompt,
                 layout.prompt_x,
                 height,
-                appearance.prompt_fg,
+                style.prompt_fg,
             );
+        }
+
+        // Optional rounded box behind the input field.
+        if style.input_bg.is_some() || style.input_border_width > 0.0 {
+            let padding = style.padding.max(0.0);
+            let x = (layout.input_x - style.gap * 0.5).max(padding);
+            let y = padding;
+            let box_width = (layout.list_x - style.gap * 0.5 - x).max(0.0);
+            let box_height = layout.content_height;
+            if let Some(background) = style.input_bg {
+                fill_rounded(
+                    target,
+                    x,
+                    y,
+                    box_width,
+                    box_height,
+                    style.input_radius,
+                    background,
+                );
+            }
+            if style.input_border_width > 0.0 {
+                stroke_rounded(
+                    target,
+                    x,
+                    y,
+                    box_width,
+                    box_height,
+                    style.input_radius,
+                    style.input_border_width,
+                    style.input_border,
+                );
+            }
         }
 
         let (visible_start, visible_end) =
@@ -99,11 +141,11 @@ impl Painter {
                     placeholder,
                     layout.input_x,
                     height,
-                    appearance.placeholder_fg,
+                    style.placeholder_fg,
                 );
             }
         } else if !shown.is_empty() {
-            self.draw_text(target, shown, layout.input_x, height, appearance.input_fg);
+            self.draw_text(target, shown, layout.input_x, height, style.input_fg);
         }
 
         // Text cursor.
@@ -115,9 +157,9 @@ impl Painter {
             target,
             layout.input_x + cursor_offset,
             (height - cursor_height) / 2.0,
-            1.5,
+            style.cursor_width.max(0.5),
             cursor_height,
-            appearance.cursor,
+            style.cursor,
         );
 
         for cell in &layout.cells {
@@ -129,20 +171,32 @@ impl Painter {
                 fill_rounded(
                     target,
                     cell.x,
-                    appearance.padding,
+                    style.padding,
                     cell.width,
                     layout.content_height,
-                    appearance.sel_radius,
-                    appearance.sel_bg,
+                    style.selection_radius,
+                    style.selection_bg,
                 );
+                if style.selection_border_width > 0.0 {
+                    stroke_rounded(
+                        target,
+                        cell.x,
+                        style.padding,
+                        cell.width,
+                        layout.content_height,
+                        style.selection_radius,
+                        style.selection_border_width,
+                        style.selection_border,
+                    );
+                }
             }
             let foreground = if selected {
-                appearance.sel_fg
+                style.selection_fg
             } else {
-                appearance.fg
+                style.fg
             };
 
-            let mut label_x = cell.x + appearance.item_padding;
+            let mut label_x = cell.x + style.item_padding;
             if appearance.show_icons {
                 let icon_size = appearance.icon_size as f32;
                 let icon_y = (height - icon_size) / 2.0;
@@ -172,28 +226,50 @@ impl Painter {
                             icon_y,
                             icon_size,
                             &item.label,
-                            appearance,
+                            style,
                         );
                     }
                 }
-                label_x += icon_size + appearance.gap;
+                label_x += icon_size + style.gap;
             }
 
-            self.draw_text(target, &item.label, label_x, height, foreground);
+            self.draw_text_highlighted(
+                target,
+                &item.label,
+                &summary.positions,
+                label_x,
+                height,
+                foreground,
+                style.highlight_fg,
+            );
         }
 
         if layout.prev_more {
-            self.draw_scroll_hint(target, appearance, "<", true);
+            self.draw_scroll_hint(target, style, layout.list_x, "<", true);
         }
         if layout.next_more {
-            self.draw_scroll_hint(target, appearance, ">", false);
+            self.draw_scroll_hint(target, style, layout.list_x, ">", false);
+        }
+
+        if style.panel_border_width > 0.0 {
+            stroke_rounded(
+                target,
+                0.0,
+                0.0,
+                width,
+                height,
+                0.0,
+                style.panel_border_width,
+                style.panel_border,
+            );
         }
     }
 
     fn draw_scroll_hint(
         &mut self,
         target: &mut Pixmap,
-        appearance: &Appearance,
+        style: &Style,
+        list_x: f32,
         glyph: &str,
         left: bool,
     ) {
@@ -201,20 +277,13 @@ impl Painter {
         let height = target.height() as f32;
         let text_width = self.text_width(glyph);
         let x = if left {
-            appearance.padding + 2.0
+            list_x + 2.0
         } else {
-            width - appearance.padding - text_width - 2.0
+            width - style.padding - text_width - 2.0
         };
         // Mask whatever is underneath the hint.
-        fill_rect(
-            target,
-            x - 3.0,
-            0.0,
-            text_width + 6.0,
-            height,
-            appearance.bg,
-        );
-        self.draw_text(target, glyph, x, height, appearance.scroll_fg);
+        fill_rect(target, x - 3.0, 0.0, text_width + 6.0, height, style.bg);
+        self.draw_text(target, glyph, x, height, style.scroll_fg);
     }
 
     fn draw_icon_placeholder(
@@ -224,7 +293,7 @@ impl Painter {
         y: f32,
         size: f32,
         label: &str,
-        appearance: &Appearance,
+        style: &Style,
     ) {
         fill_rounded(
             target,
@@ -232,8 +301,8 @@ impl Painter {
             y,
             size,
             size,
-            size * 0.22,
-            appearance.placeholder_fg.with_alpha(48),
+            style.icon_radius,
+            style.placeholder_fg.with_alpha(48),
         );
         let Some(first) = label.chars().next() else {
             return;
@@ -245,11 +314,10 @@ impl Painter {
             &letter,
             x + (size - letter_width) / 2.0,
             size + y,
-            appearance.placeholder_fg,
+            style.placeholder_fg,
         );
     }
 
-    /// Vertical centering: `box_height` is the full strip height.
     fn draw_text(
         &mut self,
         target: &mut Pixmap,
@@ -258,18 +326,43 @@ impl Painter {
         box_height: f32,
         color: Color,
     ) {
+        self.draw_text_highlighted(target, text, &[], x, box_height, color, color);
+    }
+
+    /// Draw text, coloring the characters whose indices appear in `positions`.
+    #[allow(clippy::too_many_arguments)]
+    fn draw_text_highlighted(
+        &mut self,
+        target: &mut Pixmap,
+        text: &str,
+        positions: &[u32],
+        x: f32,
+        box_height: f32,
+        normal_color: Color,
+        highlight_color: Color,
+    ) {
         if text.is_empty() {
             return;
         }
         let family = self.font_family.clone();
-        let attrs = Attrs::new().family(Family::Name(&family));
+        let base = self.attrs(&family);
+        let normal = base.clone().color(to_cosmic(normal_color));
+        let highlight = base.clone().color(to_cosmic(highlight_color));
+        let spans = build_spans(text, positions, &normal, &highlight);
+
         let metrics = Metrics::new(self.font_size, self.line_height);
         let mut buffer = Buffer::new(&mut self.font_system, metrics);
         buffer.set_size(None, None);
-        buffer.set_text(text, &attrs, Shaping::Advanced, None);
+        buffer.set_rich_text(spans, &base, Shaping::Advanced, None);
 
         let y = ((box_height - self.line_height) / 2.0).round();
-        self.blit_buffer(target, &mut buffer, x.round() as i32, y as i32, color);
+        self.blit_buffer(
+            target,
+            &mut buffer,
+            x.round() as i32,
+            y as i32,
+            normal_color,
+        );
     }
 
     fn blit_buffer(
@@ -286,7 +379,7 @@ impl Painter {
         let Painter {
             font_system, swash, ..
         } = self;
-        let base = cosmic_text::Color::rgba(color.r, color.g, color.b, color.a);
+        let base = to_cosmic(color);
         buffer.draw(font_system, swash, base, |x, y, w, h, color| {
             blend_rect(
                 data,
@@ -330,6 +423,63 @@ pub fn pixmap_to_x11(pixmap: &Pixmap) -> Vec<u8> {
         out.extend_from_slice(&value.to_ne_bytes());
     }
     out
+}
+
+/// Split `text` into contiguous spans, alternating normal/highlight attributes
+/// at the given character indices.
+fn build_spans<'a>(
+    text: &'a str,
+    positions: &[u32],
+    normal: &Attrs<'a>,
+    highlight: &Attrs<'a>,
+) -> Vec<(&'a str, Attrs<'a>)> {
+    if text.is_empty() {
+        return Vec::new();
+    }
+    if positions.is_empty() {
+        return vec![(text, normal.clone())];
+    }
+
+    let mut spans = Vec::new();
+    let mut span_start = 0usize;
+    let mut current = false;
+
+    for (char_index, (byte_index, _)) in text.char_indices().enumerate() {
+        let is_match = positions.binary_search(&(char_index as u32)).is_ok();
+        if is_match != current {
+            if byte_index > span_start {
+                spans.push((
+                    &text[span_start..byte_index],
+                    if current {
+                        highlight.clone()
+                    } else {
+                        normal.clone()
+                    },
+                ));
+            }
+            span_start = byte_index;
+            current = is_match;
+        }
+    }
+
+    if span_start < text.len() {
+        spans.push((
+            &text[span_start..],
+            if current {
+                highlight.clone()
+            } else {
+                normal.clone()
+            },
+        ));
+    }
+    if spans.is_empty() {
+        spans.push((text, normal.clone()));
+    }
+    spans
+}
+
+fn to_cosmic(color: Color) -> cosmic_text::Color {
+    cosmic_text::Color::rgba(color.r, color.g, color.b, color.a)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -400,6 +550,41 @@ fn fill_rounded(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
+fn stroke_rounded(
+    target: &mut Pixmap,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    radius: f32,
+    stroke_width: f32,
+    color: Color,
+) {
+    let stroke_width = stroke_width.max(0.0);
+    let inset = stroke_width * 0.5;
+    if width <= stroke_width || height <= stroke_width {
+        return;
+    }
+    let Some(path) = rounded_rect(
+        x + inset,
+        y + inset,
+        width - stroke_width,
+        height - stroke_width,
+        (radius - inset).max(0.0),
+    ) else {
+        return;
+    };
+    let mut paint = Paint::default();
+    paint.set_color(color.to_tiny_skia());
+    paint.anti_alias = true;
+    let stroke = Stroke {
+        width: stroke_width,
+        ..Default::default()
+    };
+    target.stroke_path(&path, &paint, &stroke, Transform::identity(), None);
+}
+
 fn rounded_rect(x: f32, y: f32, width: f32, height: f32, radius: f32) -> Option<tiny_skia::Path> {
     let rect = Rect::from_xywh(x, y, width, height)?;
     let radius = radius.max(0.0).min(width / 2.0).min(height / 2.0);
@@ -447,5 +632,38 @@ mod tests {
         let bytes = pixmap_to_x11(&pixmap);
         // X11 depth-24 ZPixmap: native u32 0x00RRGGBB.
         assert_eq!(&bytes[..4], &[0x2e, 0x1e, 0x1e, 0x00]);
+    }
+
+    #[test]
+    fn highlight_spans_toggle_at_positions() {
+        let normal = Attrs::new();
+        let highlight = Attrs::new().color(cosmic_text::Color::rgb(0xff, 0x00, 0x00));
+
+        let spans = build_spans("Firefox", &[0, 1, 2], &normal, &highlight);
+        let joined: String = spans.iter().map(|(text, _)| *text).collect();
+        assert_eq!(joined, "Firefox");
+        assert_eq!(spans.len(), 2);
+        assert_eq!(spans[0].0, "Fir");
+        assert_eq!(spans[1].0, "efox");
+        assert_eq!(
+            spans[0].1.color_opt,
+            Some(cosmic_text::Color::rgb(0xff, 0x00, 0x00))
+        );
+        assert_eq!(spans[1].1.color_opt, None);
+    }
+
+    #[test]
+    fn highlight_spans_ignore_out_of_range_positions() {
+        let normal = Attrs::new();
+        let highlight = Attrs::new();
+        let spans = build_spans("ab", &[1, 5], &normal, &highlight);
+        assert_eq!(spans.len(), 2);
+        let joined: String = spans.iter().map(|(text, _)| *text).collect();
+        assert_eq!(joined, "ab");
+    }
+
+    #[test]
+    fn empty_text_has_no_spans() {
+        assert!(build_spans("", &[0], &Attrs::new(), &Attrs::new()).is_empty());
     }
 }

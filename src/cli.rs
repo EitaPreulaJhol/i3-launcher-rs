@@ -11,6 +11,10 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Debug, Default)]
 pub struct Options {
     pub config: Option<PathBuf>,
+    /// Built-in theme override (`--theme`).
+    pub theme: Option<String>,
+    /// List the available themes and exit.
+    pub list_themes: bool,
     pub prompt: Option<String>,
     pub edge: Option<Edge>,
     pub monitor: Option<MonitorTarget>,
@@ -51,6 +55,8 @@ USO:
 
 OPÇÕES:
     -c, --config <ARQUIVO>     Caminho do config TOML
+        --theme <NOME>         Tema de cores (sobrescreve o do config)
+        --themes               Lista os temas disponíveis e sai
     -p, --prompt <TEXTO>       Texto do prompt (padrão: \"Run: \")
     -b, --bottom               Coloca a strip na base do monitor
     -e, --edge <top|bottom>    Borda do monitor
@@ -113,6 +119,8 @@ where
             "-h" | "--help" => opts.help = true,
             "-v" | "--version" => opts.version = true,
             "-c" | "--config" => opts.config = Some(PathBuf::from(next_value(&flag)?)),
+            "--theme" => opts.theme = Some(next_value(&flag)?),
+            "--themes" | "--list-themes" => opts.list_themes = true,
             "-p" | "--prompt" => opts.prompt = Some(next_value(&flag)?),
             "-b" | "--bottom" => opts.edge = Some(Edge::Bottom),
             "-e" | "--edge" => opts.edge = Some(parse_value(&flag, &next_value(&flag)?)?),
@@ -230,10 +238,10 @@ pub fn apply(opts: &Options, cfg: &mut Config) -> Result<()> {
     }
 
     for (raw, slot) in [
-        (&opts.normal_bg, &mut cfg.appearance.bg),
-        (&opts.normal_fg, &mut cfg.appearance.fg),
-        (&opts.selected_bg, &mut cfg.appearance.sel_bg),
-        (&opts.selected_fg, &mut cfg.appearance.sel_fg),
+        (&opts.normal_bg, &mut cfg.style.bg),
+        (&opts.normal_fg, &mut cfg.style.fg),
+        (&opts.selected_bg, &mut cfg.style.selection_bg),
+        (&opts.selected_fg, &mut cfg.style.selection_fg),
     ] {
         if let Some(raw) = raw {
             *slot = raw

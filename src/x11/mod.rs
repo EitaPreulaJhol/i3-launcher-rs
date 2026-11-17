@@ -46,7 +46,7 @@ impl X11 {
     /// Connect to `$DISPLAY`, pick the configured monitor and create the
     /// strip window (override-redirect + exclusive keyboard grab).
     pub fn create(cfg: &Config) -> Result<Self> {
-        let background = cfg.appearance.bg;
+        let background = cfg.style.bg;
         let (conn, screen_num) =
             x11rb::connect(None).context("não foi possível abrir o display X11")?;
         let screen = &conn.setup().roots[screen_num];

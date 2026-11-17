@@ -25,6 +25,16 @@ fn version_prints_version() {
 }
 
 #[test]
+fn lists_available_themes() {
+    let output = launcher().arg("--themes").output().unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("catppuccin-mocha"));
+    assert!(stdout.contains("gruvbox-dark"));
+    assert!(stdout.lines().count() >= 14);
+}
+
+#[test]
 fn unknown_flag_fails() {
     let output = launcher().arg("--definitely-not-a-flag").output().unwrap();
     assert_eq!(output.status.code(), Some(2));

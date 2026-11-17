@@ -47,7 +47,8 @@ src/
   main.rs            parse de args → config → X11 → itens → loop de eventos
   lib.rs
   cli.rs             flags compatíveis com dmenu (-b -p -fn -nb -nf -sb -sf -m)
-  config.rs          TOML, defaults, overrides de CLI, cores, dimensões
+  config.rs          TOML (bar/appearance/style/behavior), defaults, CLI, dimensões
+  theme.rs           paletas de cor prontas (catppuccin, gruvbox, nord, ...)
   app.rs             Item/Action: unifica entrys .desktop e linhas de stdin
   matching.rs        substring/fuzzy + score + filtro ordenado
   desktop/
@@ -64,7 +65,8 @@ src/
   ui/
     state.rs         query, cursor, seleção, scroll, edição de linha
     layout.rs        geometria do prompt, input, viewport e células
-    paint.rs         desenho no Pixmap (barra, texto, ícones, cursor, chevrons)
+    paint.rs         desenho no Pixmap (barra, texto, ícones, cursor, chevrons,
+                     raios, bordas e highlight dos matches)
 ```
 
 Fluxo de dados:
@@ -128,7 +130,8 @@ visíveis, e o resultado já sai no tamanho final.
   - `fuzzy`: subsequência gulosa, bônus por caracteres consecutivos e início de palavra.
 - Score desc, empate estável (ordem original). `sort = false` mantém ordem de scan/stdin.
 - Campos pesquisáveis: `Name`, `GenericName`, `Keywords`, `Categories`.
-- Highlight dos caracteres casados: previsto na estrutura (`positions`), habilitado na v2.
+- Highlight dos caracteres casados em `style.highlight_fg` (via `set_rich_text`
+  do cosmic-text, usando as posições devolvidas pelo matcher).
 
 ## 7. Teclado e edição (compat dmenu)
 
@@ -138,7 +141,7 @@ visíveis, e o resultado já sai no tamanho final.
 | `Enter`                 | executa o item selecionado |
 | `↑` / `↓`, `Ctrl+p/n`   | move seleção |
 | `←` / `→`               | move cursor de texto |
-| `Home` / `End`          | início/fim do texto |
+| `Home` / `End`          | início/fim do texto; repetir vai ao primeiro/último item |
 | `Backspace` / `Delete`  | apaga antes/depois do cursor |
 | `Ctrl+W` / `Ctrl+U`     | apaga palavra / linha |
 | `Tab`                   | completa com o item selecionado |
@@ -168,10 +171,26 @@ target = "focused"  # focused | primary | pointer | 0 | "HDMI-A-0"
 [appearance]
 font = "DejaVu Sans"
 font_size = 14.0
+font_weight = 400   # 100..900
 prompt = "Run: "
 icon_theme = ""     # vazio = detecta (gtk settings / hicolor)
 icon_size = 24
 show_icons = true
+
+[style]
+theme = "catppuccin-mocha"  # --themes lista os 14 temas
+bg = "#1e1e2e"              # cores explícitas vencem o tema
+fg = "#cdd6f4"
+selection_bg = "#89b4fa"
+selection_fg = "#1e1e2e"
+highlight_fg = "#fab387"    # caracteres casados
+padding = 8.0
+item_padding = 8.0
+selection_radius = 6.0
+selection_border_width = 0.0
+input_bg = "#00000033"      # opcional: caixa do campo de entrada
+input_radius = 6.0
+panel_border_width = 0.0
 
 [behavior]
 match_mode = "fuzzy"
@@ -183,7 +202,11 @@ print_selection = false
 
 Flags CLI sobrescrevem o config: `-p/--prompt`, `-b/--bottom`, `-e/--edge`,
 `-m/--monitor`, `-fn/--font`, `-nb/-nf/-sb/-sf`, `--icon-size`, `--no-icons`,
-`--height`, `--dmenu`, `--print`, `-c/--config`.
+`--height`, `--theme/--themes`, `--dmenu`, `--print`, `-c/--config`.
+
+Temas são aplicados preenchendo apenas as chaves de cor ausentes no TOML, então
+uma cor escrita pelo usuário sempre vence a paleta; `--theme` substitui o tema
+do arquivo e depois o mesmo merge acontece.
 
 ## 9. Milestones
 
@@ -196,6 +219,8 @@ Flags CLI sobrescrevem o config: `-p/--prompt`, `-b/--bottom`, `-e/--edge`,
       edição de texto, navegação, scroll horizontal, execução de apps.
 - [x] **M4 — Polimento**: mouse, indicadores de scroll, detecção de tema GTK,
       cache de medição de texto, `--dmenu`, validação de `Exec`, benchmark.
+- [x] **M4.5 — Estilo**: seção `[style]`, 14 temas prontos, raios/bordas de
+      seleção e input, borda do painel, highlight do match, peso da fonte.
 - [x] **M5 — Entrega**: README com instalação/bind do i3, `make install`,
       `cargo clippy -D warnings` limpo, testes de integração, release build.
 
@@ -224,7 +249,10 @@ Desvios do plano original:
 2. `xkbcommon` para IME, teclas mortas e layouts não-latinos.
 3. Histórico/frequência (`frecency`) e pinned apps.
 4. Suporte a Wayland (camada `wlr-layer-shell`) mantendo o backend X11.
-5. Preview/ações extras (abrir com terminal, copiar Exec, etc.).
+5. Cantos arredondados/transparência do painel: exige visual ARGB (depth 32) e
+   compositor; este servidor não oferece visual 32-bit, então só os elementos
+   internos (seleção/input/ícones) têm raio configurável hoje.
+6. Preview/ações extras (abrir com terminal, copiar Exec, etc.).
 
 ## 10. Riscos e mitigações
 

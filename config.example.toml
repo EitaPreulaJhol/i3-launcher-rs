@@ -26,6 +26,7 @@ target = "focused"
 [appearance]
 font = "DejaVu Sans"
 font_size = 14.0
+font_weight = 400       # 100..900 (400 normal, 700 negrito)
 prompt = "Run: "
 # Texto de ajuda exibido no campo de entrada quando a busca está vazia.
 # placeholder = "Digite para buscar…"
@@ -33,22 +34,50 @@ prompt = "Run: "
 icon_theme = ""
 icon_size = 24
 show_icons = true
-padding = 8.0           # margem interna da strip
-gap = 8.0               # espaço entre ícone e texto, e entre prompt e input
-item_gap = 4.0          # espaço entre células de itens
-item_padding = 8.0      # padding interno de cada célula
-sel_radius = 6.0        # raio dos cantos do destaque de seleção
 
-# Cores no formato #rgb, #rrggbb ou #rrggbbaa.
-bg = "#1e1e2e"          # fundo da strip
-fg = "#cdd6f4"          # texto dos itens
-prompt_fg = "#f9e2af"   # texto do prompt
-input_fg = "#cdd6f4"    # texto digitado
-cursor = "#f5e0dc"      # cursor de texto
-placeholder_fg = "#6c7086"
-sel_bg = "#89b4fa"      # fundo do item selecionado
-sel_fg = "#1e1e2e"      # texto do item selecionado
-scroll_fg = "#6c7086"   # setas < e >
+# ---------------------------------------------------------------------------
+# Estilo: cores, espaçamentos, raios e bordas.
+# ---------------------------------------------------------------------------
+[style]
+# Tema pronto (veja `i3-launcher --themes`). Cores definidas explicitamente
+# nesta seção vencem o tema. Deixe "" para usar apenas os valores abaixo.
+theme = "catppuccin-mocha"
+
+# Cores do tema em uso, listadas para referência. Descomente e altere qualquer
+# uma para sobrescrever apenas aquele detalhe do tema.
+# bg = "#1e1e2e"           # fundo da strip
+# fg = "#cdd6f4"           # texto dos itens
+# prompt_fg = "#f9e2af"    # texto do prompt
+# input_fg = "#cdd6f4"     # texto digitado
+# cursor = "#f5e0dc"       # cursor de texto
+# placeholder_fg = "#6c7086"
+# selection_bg = "#89b4fa" # fundo do item selecionado
+# selection_fg = "#1e1e2e" # texto do item selecionado
+# scroll_fg = "#6c7086"    # setas < e >
+# highlight_fg = "#fab387" # caracteres que casaram com a busca
+
+# Geometria.
+padding = 8.0            # margem interna da strip
+gap = 8.0                # espaço entre ícone/texto, prompt/input etc.
+item_gap = 4.0           # espaço entre células de itens
+item_padding = 8.0       # padding interno de cada célula
+cursor_width = 1.5       # largura do cursor de texto
+icon_radius = 5.0        # raio do ícone-placeholder (entradas sem ícone)
+
+# Destaque do item selecionado.
+selection_radius = 6.0
+selection_border_width = 0.0
+selection_border = "#45475a"
+
+# Caixa do campo de entrada. Sem `input_bg` e com borda 0, não é desenhada.
+# input_bg = "#00000033"
+input_radius = 6.0
+input_border_width = 0.0
+input_border = "#89b4fa"
+
+# Borda interna ao redor de toda a strip.
+panel_border_width = 0.0
+panel_border = "#11111b"
 
 [behavior]
 # prefix | substring | fuzzy

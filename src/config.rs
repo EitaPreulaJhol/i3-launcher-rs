@@ -111,6 +111,20 @@ impl FromStr for Color {
     }
 }
 
+impl fmt::Display for Color {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.a == 255 {
+            write!(f, "#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
+        } else {
+            write!(
+                f,
+                "#{:02x}{:02x}{:02x}{:02x}",
+                self.r, self.g, self.b, self.a
+            )
+        }
+    }
+}
+
 impl<'de> Deserialize<'de> for Color {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let raw = String::deserialize(deserializer)?;
@@ -352,6 +366,8 @@ pub struct Appearance {
     pub font: String,
     /// Font size in pixels.
     pub font_size: f32,
+    /// CSS-style font weight (100 = thin, 400 = normal, 700 = bold).
+    pub font_weight: u16,
     /// Prompt shown before the input field.
     pub prompt: String,
     /// Placeholder drawn in the input field while the query is empty (optional).
@@ -362,25 +378,6 @@ pub struct Appearance {
     pub icon_size: u32,
     /// Draw application icons.
     pub show_icons: bool,
-    /// Inner padding of the strip.
-    pub padding: f32,
-    /// Gap between icon and label.
-    pub gap: f32,
-    /// Gap between items.
-    pub item_gap: f32,
-    /// Horizontal padding inside an item cell.
-    pub item_padding: f32,
-    /// Corner radius of the selection pill, in pixels.
-    pub sel_radius: f32,
-    pub bg: Color,
-    pub fg: Color,
-    pub prompt_fg: Color,
-    pub input_fg: Color,
-    pub cursor: Color,
-    pub placeholder_fg: Color,
-    pub sel_bg: Color,
-    pub sel_fg: Color,
-    pub scroll_fg: Color,
 }
 
 impl Default for Appearance {
@@ -388,25 +385,97 @@ impl Default for Appearance {
         Self {
             font: "DejaVu Sans".to_string(),
             font_size: 14.0,
+            font_weight: 400,
             prompt: "Run: ".to_string(),
             placeholder: None,
             icon_theme: String::new(),
             icon_size: 24,
             show_icons: true,
-            padding: 8.0,
-            gap: 8.0,
-            item_gap: 4.0,
-            item_padding: 8.0,
-            sel_radius: 6.0,
+        }
+    }
+}
+
+/// Everything visual: colors, spacing, radii and borders.
+///
+/// `theme` picks one of the built-in palettes; colors set explicitly in this
+/// section always win over the palette.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Style {
+    /// Built-in theme name (see `--themes`); empty means "use only the keys".
+    pub theme: String,
+
+    pub bg: Color,
+    pub fg: Color,
+    pub prompt_fg: Color,
+    pub input_fg: Color,
+    pub cursor: Color,
+    pub placeholder_fg: Color,
+    pub selection_bg: Color,
+    pub selection_fg: Color,
+    pub scroll_fg: Color,
+    /// Color of the characters matched by the query.
+    pub highlight_fg: Color,
+
+    /// Inner border around the whole strip.
+    pub panel_border: Color,
+    pub panel_border_width: f32,
+
+    /// Outline of the selected item.
+    pub selection_border: Color,
+    pub selection_border_width: f32,
+    pub selection_radius: f32,
+
+    /// Optional rounded box behind the input field. Omit to disable it.
+    pub input_bg: Option<Color>,
+    pub input_border: Color,
+    pub input_border_width: f32,
+    pub input_radius: f32,
+
+    /// Corner radius used by the placeholder icon of entries without an icon.
+    pub icon_radius: f32,
+    /// Width of the text cursor.
+    pub cursor_width: f32,
+
+    /// Inner padding of the strip.
+    pub padding: f32,
+    /// Gap between icon and label, prompt and input, and list edges.
+    pub gap: f32,
+    /// Gap between items.
+    pub item_gap: f32,
+    /// Horizontal padding inside an item cell.
+    pub item_padding: f32,
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Self {
+            theme: String::new(),
             bg: Color::rgb(0x1e, 0x1e, 0x2e),
             fg: Color::rgb(0xcd, 0xd6, 0xf4),
             prompt_fg: Color::rgb(0xf9, 0xe2, 0xaf),
             input_fg: Color::rgb(0xcd, 0xd6, 0xf4),
             cursor: Color::rgb(0xf5, 0xe0, 0xdc),
             placeholder_fg: Color::rgb(0x6c, 0x70, 0x86),
-            sel_bg: Color::rgb(0x89, 0xb4, 0xfa),
-            sel_fg: Color::rgb(0x1e, 0x1e, 0x2e),
+            selection_bg: Color::rgb(0x89, 0xb4, 0xfa),
+            selection_fg: Color::rgb(0x1e, 0x1e, 0x2e),
             scroll_fg: Color::rgb(0x6c, 0x70, 0x86),
+            highlight_fg: Color::rgb(0xfa, 0xb3, 0x87),
+            panel_border: Color::rgb(0x11, 0x11, 0x1b),
+            panel_border_width: 0.0,
+            selection_border: Color::rgb(0x45, 0x47, 0x5a),
+            selection_border_width: 0.0,
+            selection_radius: 6.0,
+            input_bg: None,
+            input_border: Color::rgb(0x89, 0xb4, 0xfa),
+            input_border_width: 0.0,
+            input_radius: 6.0,
+            icon_radius: 5.0,
+            cursor_width: 1.5,
+            padding: 8.0,
+            gap: 8.0,
+            item_gap: 4.0,
+            item_padding: 8.0,
         }
     }
 }
@@ -452,6 +521,7 @@ pub struct Config {
     pub bar: BarConfig,
     pub monitor: MonitorConfig,
     pub appearance: Appearance,
+    pub style: Style,
     pub behavior: Behavior,
 }
 
@@ -460,29 +530,51 @@ impl Config {
     ///
     /// An explicitly given path (from `--config`) must exist. Otherwise the
     /// search path is `$I3L_CONFIG`, the XDG config dir and finally the HOME
-    /// fallback; missing files simply yield defaults.
-    pub fn load(explicit: Option<&Path>) -> Result<Self> {
+    /// fallback; missing files yield the built-in defaults.
+    ///
+    /// `theme` overrides the theme written in the file (from `--theme`).
+    pub fn load(explicit: Option<&Path>, theme: Option<&str>) -> Result<Self> {
         if let Some(path) = explicit {
-            return Self::from_path(path).with_context(|| {
-                format!("não foi possível carregar o config `{}`", path.display())
-            });
+            let raw = std::fs::read_to_string(path)
+                .with_context(|| format!("não foi possível ler `{}`", path.display()))?;
+            return Self::from_str(&raw, theme)
+                .with_context(|| format!("config `{}` inválido", path.display()));
         }
 
         for path in Self::search_paths() {
-            if path.is_file() {
-                return Self::from_path(&path).with_context(|| {
-                    format!("não foi possível carregar o config `{}`", path.display())
-                });
+            if !path.is_file() {
+                continue;
             }
+            let raw = std::fs::read_to_string(&path)
+                .with_context(|| format!("não foi possível ler `{}`", path.display()))?;
+            return Self::from_str(&raw, theme)
+                .with_context(|| format!("config `{}` inválido", path.display()));
         }
 
-        Ok(Self::default())
+        Self::from_str("", theme)
     }
 
+    /// Parse a TOML document, resolving the `[style]` theme first.
+    pub fn from_str(raw: &str, theme: Option<&str>) -> Result<Self> {
+        let mut value: toml::Value = if raw.trim().is_empty() {
+            toml::Value::Table(Default::default())
+        } else {
+            toml::from_str(raw)?
+        };
+
+        if let Some(theme) = theme {
+            set_theme(&mut value, theme)?;
+        }
+        apply_theme(&mut value)?;
+
+        let config: Config = value.try_into()?;
+        Ok(config)
+    }
+
+    /// Convenience wrapper used by tests and tools.
     pub fn from_path(path: &Path) -> Result<Self> {
         let raw = std::fs::read_to_string(path)?;
-        let config: Config = toml::from_str(&raw)?;
-        Ok(config)
+        Self::from_str(&raw, None)
     }
 
     /// Candidate config locations, highest priority first.
@@ -503,6 +595,57 @@ impl Config {
     }
 }
 
+fn style_table(value: &mut toml::Value) -> Result<&mut toml::value::Table> {
+    let root = value
+        .as_table_mut()
+        .context("o config TOML deve ser uma tabela")?;
+    let style = root
+        .entry("style".to_string())
+        .or_insert_with(|| toml::Value::Table(Default::default()));
+    style
+        .as_table_mut()
+        .context("`[style]` deve ser uma tabela")
+}
+
+fn set_theme(value: &mut toml::Value, theme: &str) -> Result<()> {
+    style_table(value)?.insert(
+        "theme".to_string(),
+        toml::Value::String(theme.trim().to_string()),
+    );
+    Ok(())
+}
+
+/// Fill the style colors from the selected theme, without overriding keys the
+/// user wrote explicitly.
+fn apply_theme(value: &mut toml::Value) -> Result<()> {
+    let name = value
+        .get("style")
+        .and_then(|style| style.get("theme"))
+        .and_then(|theme| theme.as_str())
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+
+    if name.is_empty() {
+        return Ok(());
+    }
+
+    let palette = crate::theme::find(&name).ok_or_else(|| {
+        anyhow::anyhow!(
+            "tema desconhecido `{name}`; disponíveis: {}",
+            crate::theme::names().collect::<Vec<_>>().join(", ")
+        )
+    })?;
+
+    let table = style_table(value)?;
+    for (key, color) in palette.colors() {
+        table
+            .entry(key.to_string())
+            .or_insert_with(|| toml::Value::String(color.to_string()));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -510,14 +653,69 @@ mod tests {
     #[test]
     fn example_config_is_valid_and_matches_defaults() {
         let raw = include_str!("../config.example.toml");
-        let parsed: Config = toml::from_str(raw).expect("config.example.toml inválido");
+        let parsed = Config::from_str(raw, None).expect("config.example.toml inválido");
         let defaults = Config::default();
         // Keep the documented example in sync with the compiled defaults.
         assert_eq!(parsed.bar.edge, defaults.bar.edge);
         assert_eq!(parsed.bar.height, defaults.bar.height);
         assert_eq!(parsed.behavior.match_mode, defaults.behavior.match_mode);
         assert_eq!(parsed.appearance.font, defaults.appearance.font);
-        assert_eq!(parsed.appearance.bg, defaults.appearance.bg);
+        assert_eq!(parsed.style.bg, defaults.style.bg);
+        assert_eq!(
+            parsed.style.selection_radius,
+            defaults.style.selection_radius
+        );
+    }
+
+    #[test]
+    fn every_theme_deserializes() {
+        for name in crate::theme::names() {
+            let raw = format!("[style]\ntheme = \"{name}\"\n");
+            Config::from_str(&raw, None)
+                .unwrap_or_else(|err| panic!("tema `{name}` falhou: {err:#}"));
+        }
+    }
+
+    #[test]
+    fn theme_fills_colors_and_explicit_keys_win() {
+        let raw = "[style]\ntheme = \"gruvbox-dark\"\nbg = \"#000000\"\n";
+        let cfg = Config::from_str(raw, None).unwrap();
+        assert_eq!(cfg.style.theme, "gruvbox-dark");
+        assert_eq!(cfg.style.bg, Color::rgb(0, 0, 0));
+        assert_eq!(cfg.style.fg, "#ebdbb2".parse().unwrap());
+        assert_eq!(cfg.style.selection_bg, "#458588".parse().unwrap());
+    }
+
+    #[test]
+    fn cli_theme_override_replaces_the_file_theme() {
+        let raw = "[style]\ntheme = \"nord\"\n";
+        let cfg = Config::from_str(raw, Some("dracula")).unwrap();
+        assert_eq!(cfg.style.theme, "dracula");
+        assert_eq!(cfg.style.bg, "#282a36".parse().unwrap());
+    }
+
+    #[test]
+    fn explicit_colors_win_over_cli_theme() {
+        let cfg = Config::from_str("[style]\nbg = \"#010101\"\n", Some("dracula")).unwrap();
+        assert_eq!(cfg.style.bg, Color::rgb(1, 1, 1));
+        assert_eq!(cfg.style.fg, "#f8f8f2".parse().unwrap());
+    }
+
+    #[test]
+    fn unknown_theme_lists_available_names() {
+        let err = Config::from_str("[style]\ntheme = \"nao-existe\"\n", None).unwrap_err();
+        let message = format!("{err:#}");
+        assert!(message.contains("nao-existe"));
+        assert!(message.contains("catppuccin-mocha"));
+    }
+
+    #[test]
+    fn style_geometry_is_loaded() {
+        let raw = "[style]\nselection_radius = 10.0\ninput_bg = \"#00000055\"\npanel_border_width = 2.0\n";
+        let cfg = Config::from_str(raw, None).unwrap();
+        assert_eq!(cfg.style.selection_radius, 10.0);
+        assert_eq!(cfg.style.input_bg, Some(Color::rgba(0, 0, 0, 0x55)));
+        assert_eq!(cfg.style.panel_border_width, 2.0);
     }
 
     #[test]
