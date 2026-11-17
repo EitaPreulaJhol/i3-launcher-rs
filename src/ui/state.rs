@@ -18,9 +18,6 @@ pub enum Mode {
     Paths,
 }
 
-/// Prompt shown while the PATH mode is active.
-const PATH_PROMPT: &str = "PATH: ";
-
 /// What the launcher should do after handling an event.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Outcome {
@@ -104,14 +101,6 @@ impl App {
         self.mode == Mode::Apps
     }
 
-    /// Prompt for the current mode. PATH mode gets its own label.
-    pub fn prompt<'a>(&self, configured: &'a str) -> &'a str {
-        match self.mode {
-            Mode::Apps => configured,
-            Mode::Paths => PATH_PROMPT,
-        }
-    }
-
     pub fn selected_item(&self) -> Option<&Item> {
         self.filtered.get(self.sel).map(|m| &self.items[m.index])
     }
@@ -122,11 +111,10 @@ impl App {
         let style = &cfg.style;
         let padding = style.padding.max(0.0);
         let gap = style.gap.max(0.0);
-        let prompt = self.prompt(&appearance.prompt);
-        let prompt_width = if prompt.is_empty() {
+        let prompt_width = if appearance.prompt.is_empty() {
             0.0
         } else {
-            painter.text_width(prompt)
+            painter.text_width(&appearance.prompt)
         };
         let prompt_gap = if prompt_width > 0.0 { gap } else { 0.0 };
 
@@ -760,7 +748,6 @@ mod tests {
 
         assert_eq!(app.mode(), Mode::Apps);
         assert!(app.shows_icons());
-        assert_eq!(app.prompt("Run: "), "Run: ");
 
         type_text(&mut app, "gi");
         assert_eq!(app.query, "gi");
@@ -768,7 +755,6 @@ mod tests {
         assert!(app.handle_key(Keysym::Tab, Mods::default(), &Behavior::default()));
         assert_eq!(app.mode(), Mode::Paths);
         assert!(!app.shows_icons());
-        assert_eq!(app.prompt("Run: "), "PATH: ");
         assert_eq!(app.query, "gi");
         assert_eq!(app.selected_item().unwrap().label, "git");
 

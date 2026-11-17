@@ -167,9 +167,9 @@ i3-launcher --theme catppuccin-latte
 | `Ctrl+W` `Ctrl+U` `Ctrl+K` | apaga palavra / até o início / até o fim |
 | clique / scroll | seleciona / navega |
 
-No modo `--dmenu` o `Tab` não tem efeito (a lista vem do stdin). O modo PATH
-mostra o prompt `PATH: ` e executa o binário escolhido diretamente, sem shell
-intermediário.
+No modo `--dmenu` o `Tab` não tem efeito (a lista vem do stdin). No modo PATH
+o prompt continua o mesmo (`Run: `) e o binário escolhido é executado
+diretamente, sem shell intermediário.
 
 ### Modo dmenu
 

@@ -94,9 +94,14 @@ impl Painter {
 
         target.fill(style.bg.to_tiny_skia());
 
-        let prompt = app.prompt(&appearance.prompt);
-        if !prompt.is_empty() {
-            self.draw_text(target, prompt, layout.prompt_x, height, style.prompt_fg);
+        if !appearance.prompt.is_empty() {
+            self.draw_text(
+                target,
+                &appearance.prompt,
+                layout.prompt_x,
+                height,
+                style.prompt_fg,
+            );
         }
 
         // Optional rounded box behind the input field.
