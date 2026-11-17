@@ -44,10 +44,25 @@ libxcb-xinerama0-dev`). O `cosmic-text` usa fontconfig.
 ```bash
 git clone <este-repo> i3-launcher-rs
 cd i3-launcher-rs
-cargo build --release
-install -Dm755 target/release/i3-launcher ~/.local/bin/i3-launcher
-# ou: make install
+
+# opção 1: instalar em ~/.local/bin (compila antes)
+./install.sh                              # ou: make install
+
+# opção 2: cargo install (vai para ~/.cargo/bin, precisa estar no PATH)
+cargo install --path . --locked
+
+# opção 3: outro prefixo / empacotamento
+PREFIX=/usr/local ./install.sh
+DESTDIR=/tmp/pkg PREFIX=/usr ./install.sh
+make install PREFIX=/usr/local
+
+# só compilar:
+cargo build --release                     # binário em target/release/i3-launcher
 ```
+
+`./install.sh --no-build` instala o binário já compilado. As variáveis
+`PREFIX` (padrão `~/.local`), `BINDIR` (padrão `$PREFIX/bin`) e `DESTDIR`
+(padrão vazio) controlam o destino.
 
 No `~/.config/i3/config`:
 
