@@ -82,7 +82,13 @@ fn run() -> Result<i32> {
     });
 
     let x11_start = Instant::now();
-    let x11 = X11::create(&cfg)?;
+    // App mode is single-instance per display: pressing the keybinding again
+    // while the strip is open must not stack extra windows (only the first
+    // one can hold the keyboard grab). `--dmenu` pipes stay independent.
+    let Some(x11) = X11::create(&cfg, !options.dmenu)? else {
+        debug(|| "another instance is already running".to_string());
+        return Ok(0);
+    };
     debug(|| {
         format!(
             "monitor={} size={:?} (window in {} ms)",

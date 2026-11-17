@@ -32,6 +32,8 @@ rendering.
   commands (no icons, run directly). `PATH` is read on demand on the first Tab.
 - dmenu mode (`--dmenu`) for pipes: reads lines from stdin and prints the
   selection.
+- Single instance per display: pressing the keybinding again while the strip
+  is open is a no-op, so windows never stack and `Esc` always closes it.
 - **TOML styling**: `[style]` section with colors, radii, borders, spacing,
   font weight and 14 ready-made themes (`--themes`).
 - TOML config with validation (`deny_unknown_fields`), dmenu-compatible flags.

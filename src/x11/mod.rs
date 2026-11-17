@@ -47,13 +47,23 @@ pub struct X11 {
 impl X11 {
     /// Connect to `$DISPLAY`, pick the configured monitor and create the
     /// strip window (override-redirect + exclusive keyboard grab).
-    pub fn create(cfg: &Config) -> Result<Self> {
+    ///
+    /// With `single_instance`, ownership of the `_I3_LAUNCHER_RUNNING`
+    /// selection is claimed for the display. `Ok(None)` means another
+    /// launcher already owns it (the caller should exit quietly) and avoids
+    /// stacked windows that could not grab the keyboard.
+    pub fn create(cfg: &Config, single_instance: bool) -> Result<Option<Self>> {
         let background = cfg.style.bg;
         let (conn, screen_num) = x11rb::connect(None).context("could not open the X11 display")?;
         let screen = &conn.setup().roots[screen_num];
         let root = screen.root;
         let depth = screen.root_depth;
         let keymap = Keymap::load(&conn)?;
+
+        let instance_atom = intern_atom(&conn, b"_I3_LAUNCHER_RUNNING")?;
+        if single_instance && instance_owner(&conn, instance_atom)? != x11rb::NONE {
+            return Ok(None);
+        }
 
         // Remember the real window that was focused so it can be restored on
         // exit. `focus` 0/1 means None/PointerRoot and is not restorable.
@@ -102,6 +112,16 @@ impl X11 {
         )
         .context("could not create the launcher window")?;
 
+        if single_instance {
+            // The selection owner is released by the server when this client
+            // disconnects, so a crashed instance never leaves a stale lock.
+            conn.set_selection_owner(win, instance_atom, CURRENT_TIME)?;
+            if instance_owner(&conn, instance_atom)? != win {
+                // Lost a startup race to another instance.
+                return Ok(None);
+            }
+        }
+
         // Identification, useful for debug tools and window rules.
         conn.change_property8(
             PropMode::REPLACE,
@@ -147,7 +167,7 @@ impl X11 {
         conn.create_gc(gc, back_buffer, &CreateGCAux::new().graphics_exposures(0))?;
         conn.flush()?;
 
-        Ok(Self {
+        Ok(Some(Self {
             conn,
             win,
             gc,
@@ -157,7 +177,7 @@ impl X11 {
             keymap,
             monitor_name,
             previous_focus,
-        })
+        }))
     }
 
     pub fn monitor_name(&self) -> &str {
@@ -312,4 +332,9 @@ fn debug(message: impl Fn() -> String) {
 
 pub fn intern_atom<C: Connection>(conn: &C, name: &[u8]) -> Result<u32> {
     Ok(conn.intern_atom(false, name)?.reply()?.atom)
+}
+
+/// Current owner of `atom`, or [`x11rb::NONE`] when the selection is free.
+fn instance_owner<C: Connection>(conn: &C, atom: u32) -> Result<Window> {
+    Ok(conn.get_selection_owner(atom)?.reply()?.owner)
 }
