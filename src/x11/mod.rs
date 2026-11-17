@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{
     AtomEnum, ConnectionExt as XprotoExt, CreateGCAux, CreateWindowAux, EventMask, Gcontext,
-    GrabMode, GrabStatus, ImageFormat, Pixmap, PropMode, Window, WindowClass,
+    GrabMode, GrabStatus, ImageFormat, InputFocus, MapState, Pixmap, PropMode, Window, WindowClass,
 };
 use x11rb::protocol::Event;
 use x11rb::rust_connection::RustConnection;
@@ -40,6 +40,8 @@ pub struct X11 {
     depth: u8,
     keymap: Keymap,
     monitor_name: String,
+    /// Window that had the input focus before the launcher opened.
+    previous_focus: Option<Window>,
 }
 
 impl X11 {
@@ -53,6 +55,19 @@ impl X11 {
         let root = screen.root;
         let depth = screen.root_depth;
         let keymap = Keymap::load(&conn)?;
+
+        // Remember the real window that was focused so it can be restored on
+        // exit. `focus` 0/1 means None/PointerRoot and is not restorable.
+        let previous_focus = conn
+            .get_input_focus()
+            .ok()
+            .and_then(|cookie| cookie.reply().ok())
+            .map(|reply| reply.focus)
+            .filter(|focus| *focus > 1 && *focus != root);
+        debug(|| match previous_focus {
+            Some(window) => format!("foco anterior: {window:#x}"),
+            None => "foco anterior: nenhum".to_string(),
+        });
 
         let monitors = monitor::list(&conn, root, screen.width_in_pixels, screen.height_in_pixels);
         let monitor_index = monitor::select(&conn, root, &monitors, &cfg.monitor.target);
@@ -125,11 +140,7 @@ impl X11 {
                 );
             }
         }
-        conn.set_input_focus(
-            x11rb::protocol::xproto::InputFocus::PARENT,
-            win,
-            CURRENT_TIME,
-        )?;
+        conn.set_input_focus(InputFocus::POINTER_ROOT, win, CURRENT_TIME)?;
 
         let back_buffer = conn.generate_id()?;
         conn.create_pixmap(depth, back_buffer, win, rect.width, rect.height)?;
@@ -146,6 +157,7 @@ impl X11 {
             depth,
             keymap,
             monitor_name,
+            previous_focus,
         })
     }
 
@@ -245,10 +257,57 @@ impl X11 {
 impl Drop for X11 {
     fn drop(&mut self) {
         let _ = self.conn.ungrab_keyboard(CURRENT_TIME);
+
+        // Did the launcher still own the focus? If the user clicked anywhere
+        // else while it was open, that window must keep the focus.
+        let current_focus = self
+            .conn
+            .get_input_focus()
+            .ok()
+            .and_then(|cookie| cookie.reply().ok())
+            .map(|reply| reply.focus);
+        let owned_focus = current_focus == Some(self.win);
+
         let _ = self.conn.free_gc(self.gc);
         let _ = self.conn.free_pixmap(self.back_buffer);
         let _ = self.conn.destroy_window(self.win);
+
+        // Destroying the focused window makes the server revert the focus
+        // (usually to PointerRoot), so restore the previous window *after*
+        // the destroy, while the connection is still open.
+        if owned_focus {
+            if let Some(previous) = self.previous_focus {
+                let viewable = self
+                    .conn
+                    .get_window_attributes(previous)
+                    .ok()
+                    .and_then(|cookie| cookie.reply().ok())
+                    .map(|attributes| attributes.map_state == MapState::VIEWABLE)
+                    .unwrap_or(false);
+                if viewable {
+                    let _ =
+                        self.conn
+                            .set_input_focus(InputFocus::POINTER_ROOT, previous, CURRENT_TIME);
+                    debug(|| {
+                        let focus = self
+                            .conn
+                            .get_input_focus()
+                            .ok()
+                            .and_then(|cookie| cookie.reply().ok())
+                            .map(|reply| reply.focus);
+                        format!("foco restaurado: {previous:#x} (atual: {focus:x?})")
+                    });
+                }
+            }
+        }
+
         let _ = self.conn.flush();
+    }
+}
+
+fn debug(message: impl Fn() -> String) {
+    if std::env::var_os("I3L_DEBUG").is_some() {
+        eprintln!("i3-launcher: {}", message());
     }
 }
 

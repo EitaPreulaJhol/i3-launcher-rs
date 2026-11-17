@@ -270,6 +270,7 @@ Desvios do plano original:
 | Risco | Mitigação |
 | ----- | --------- |
 | Grab de teclado não recebe eventos | Grab no `root` com `owner_events=true` + `SetInputFocus`; re-grab em `FocusIn` (igual dmenu) |
+| Janela anterior perde o foco ao fechar | Salvar `GetInputFocus` antes de abrir, `RevertToPointerRoot` e restaurar após destruir a janela (só se o launcher ainda detinha o foco) |
 | Ícones lentos no primeiro frame | Cache por `(nome, tamanho)`; carregar só o viewport; pré-aquecer em thread se necessário |
 | Fontes SVG ausentes (resvg sem `text`) | Ícones com `<text>` são raros; habilitar feature `text`/`system-fonts` se aparecer |
 | Tema sem PNG/SVG no tamanho | Escalonamento Lanczos (PNG) / render vetorial (SVG) + fallback `hicolor`/pixmaps |
