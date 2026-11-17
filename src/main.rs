@@ -35,13 +35,29 @@ fn run() -> Result<i32> {
         println!("i3-launcher {}", cli::VERSION);
         return Ok(0);
     }
+    if options.list_themes {
+        for name in i3_launcher::theme::names() {
+            println!("{name}");
+        }
+        return Ok(0);
+    }
     for warning in &options.warnings {
         eprintln!("i3-launcher: {warning}");
     }
 
-    let mut cfg = Config::load(options.config.as_deref())?;
+    let mut cfg = Config::load(options.config.as_deref(), options.theme.as_deref())?;
     cli::apply(&options, &mut cfg)?;
-    debug(|| format!("config: {} ms", startup.elapsed().as_millis()));
+    debug(|| {
+        let theme = if cfg.style.theme.is_empty() {
+            "custom"
+        } else {
+            &cfg.style.theme
+        };
+        format!(
+            "config: {} ms (tema: {theme})",
+            startup.elapsed().as_millis()
+        )
+    });
 
     // Scanning is fast (~ms); reading stdin may block, so it happens before the
     // keyboard grab, exactly like dmenu's default behaviour.

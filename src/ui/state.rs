@@ -53,8 +53,9 @@ impl App {
     /// Recompute the horizontal viewport for the current selection.
     pub fn relayout(&mut self, painter: &mut Painter, cfg: &Config, width: f32, height: f32) {
         let appearance = &cfg.appearance;
-        let padding = appearance.padding.max(0.0);
-        let gap = appearance.gap.max(0.0);
+        let style = &cfg.style;
+        let padding = style.padding.max(0.0);
+        let gap = style.gap.max(0.0);
         let prompt_width = if appearance.prompt.is_empty() {
             0.0
         } else {
@@ -78,9 +79,9 @@ impl App {
             appearance.show_icons,
             icon_size,
             gap,
-            appearance.item_padding,
+            style.item_padding,
         );
-        let item_gap = appearance.item_gap.max(0.0);
+        let item_gap = style.item_gap.max(0.0);
 
         let len = self.filtered.len();
         let mut offset = if len == 0 {
@@ -253,11 +254,23 @@ impl App {
                 true
             }
             Keysym::Home | Keysym::KP_Home => {
-                self.cursor = 0;
+                // Like dmenu: once the cursor is at the start, jump to the
+                // first item.
+                if self.cursor == 0 && self.sel != 0 {
+                    self.sel = 0;
+                } else {
+                    self.cursor = 0;
+                }
                 true
             }
             Keysym::End | Keysym::KP_End => {
-                self.cursor = self.query.len();
+                // Like dmenu: once the cursor is at the end, jump to the
+                // last item.
+                if self.cursor == self.query.len() && !self.filtered.is_empty() {
+                    self.sel = self.filtered.len() - 1;
+                } else {
+                    self.cursor = self.query.len();
+                }
                 true
             }
             Keysym::Up | Keysym::KP_Up => self.move_selection(-1),
@@ -583,6 +596,23 @@ mod tests {
         let mut app = self::app();
         app.handle_key(Keysym::Escape, Mods::default(), &Behavior::default());
         assert_eq!(app.outcome, Some(Outcome::Quit(1)));
+    }
+
+    #[test]
+    fn home_and_end_jump_to_list_edges() {
+        let mut app = self::app();
+        app.handle_key(Keysym::End, Mods::default(), &Behavior::default());
+        assert_eq!(app.sel, 2);
+        assert_eq!(app.query, "");
+        app.handle_key(Keysym::Home, Mods::default(), &Behavior::default());
+        assert_eq!(app.sel, 0);
+
+        // With text, the first press only moves the cursor.
+        type_text(&mut app, "fi");
+        app.handle_key(Keysym::Home, Mods::default(), &Behavior::default());
+        assert_eq!(app.cursor, 0);
+        app.handle_key(Keysym::Home, Mods::default(), &Behavior::default());
+        assert_eq!(app.sel, 0);
     }
 
     #[test]

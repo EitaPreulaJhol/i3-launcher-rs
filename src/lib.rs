@@ -10,5 +10,6 @@ pub mod config;
 pub mod desktop;
 pub mod icons;
 pub mod matching;
+pub mod theme;
 pub mod ui;
 pub mod x11;

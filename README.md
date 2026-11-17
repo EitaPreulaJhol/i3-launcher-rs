@@ -24,6 +24,8 @@ software.
 - Execução correta do `Exec` do Desktop Entry (quoting, field codes, `Terminal=true`
   e `Path=`), com `setsid` quando disponível.
 - Modo dmenu (`--dmenu`) para usar em pipes: lê linhas do stdin e imprime a seleção.
+- **Estilo no TOML**: seção `[style]` com cores, raios, bordas, espaçamentos,
+  peso da fonte e 14 temas prontos (`--themes`).
 - Config TOML com validação (`deny_unknown_fields`), flags compatíveis com dmenu.
 - Início rápido: ~25 ms até o primeiro frame (release, 38 apps, fontes já em cache do SO).
 
@@ -75,6 +77,8 @@ i3-launcher [OPÇÕES]
       --exec                 com --dmenu, executa via shell
       --print                imprime a seleção em vez de executar
   -nb/-nf/-sb/-sf <COR>      cores (compatibilidade com dmenu)
+      --theme <NOME>         sobrescreve o tema de cores do config
+      --themes               lista os temas disponíveis
   -c, --config <ARQUIVO>     config TOML
   -h, --help  -v, --version
 ```
@@ -82,6 +86,47 @@ i3-launcher [OPÇÕES]
 Config: `$I3L_CONFIG`, `--config`, `$XDG_CONFIG_HOME/i3-launcher/config.toml` ou
 `~/.config/i3-launcher/config.toml`. Veja `config.example.toml` para todas as
 chaves.
+
+## Estilo e temas
+
+Tudo que é visual fica em `[style]`: cores, espaçamentos, raios e bordas.
+`theme` escolhe uma paleta pronta; qualquer cor escrita na seção vence a paleta.
+
+```toml
+[style]
+theme = "gruvbox-dark"        # vazio = usar só as cores abaixo
+highlight_fg = "#fe8019"      # caracteres que casaram com a busca
+
+selection_radius = 10.0
+selection_border_width = 2.0
+selection_border = "#fabd2f"
+
+input_bg = "#00000055"        # caixa arredondada atrás do campo de entrada
+input_radius = 10.0
+input_border_width = 1.5
+input_border = "#fabd2f"
+
+panel_border_width = 2.0      # borda interna ao redor da strip
+panel_border = "#504945"
+
+padding = 8.0                 # margem interna
+item_padding = 10.0           # padding da célula
+cursor_width = 2.0
+icon_radius = 6.0             # ícone-placeholder de entradas sem ícone
+
+[appearance]
+font_weight = 600             # 100..900
+```
+
+Temas incluídos: `catppuccin-mocha`, `catppuccin-macchiato`,
+`catppuccin-frappe`, `catppuccin-latte`, `gruvbox-dark`, `gruvbox-light`,
+`nord`, `dracula`, `tokyo-night`, `solarized-dark`, `solarized-light`,
+`one-dark`, `rose-pine` e `adwaita-dark`.
+
+```bash
+i3-launcher --themes
+i3-launcher --theme catppuccin-latte
+```
 
 ### Teclas
 
@@ -93,7 +138,7 @@ chaves.
 | `PgUp` `PgDn` | salta 10 itens |
 | `←` `→` / `Ctrl+B` `Ctrl+F` | move o cursor |
 | `Alt+B` `Alt+F` | move por palavra |
-| `Home` `End` / `Ctrl+A` `Ctrl+E` | início/fim do texto |
+| `Home` `End` / `Ctrl+A` `Ctrl+E` | início/fim do texto (repetir: primeiro/último item) |
 | `Backspace` `Delete` / `Ctrl+H` `Ctrl+D` | apaga caractere |
 | `Ctrl+W` `Ctrl+U` `Ctrl+K` | apaga palavra / até o início / até o fim |
 | `Tab` | completa com o item selecionado |
@@ -158,8 +203,9 @@ I3L_DEBUG=1 cargo run --release             # log de monitor/itens/tema
   (níveis 0/1 com Shift). Para teclados complexos, o caminho é `xkbcommon`.
 - Sem layout em grade: a lista é uma única linha com scroll horizontal, como o
   dmenu.
-- Cantos arredondados da strip exigiriam visual ARGB + compositor; por enquanto
-  só o destaque de seleção é arredondado.
+- Cantos arredondados/transparência da strip inteira exigem visual ARGB
+  (depth 32) + compositor; no X11 sem ARGB ficam quadrados. Os elementos
+  internos (seleção, caixa de entrada, ícone-placeholder) têm raio configurável.
 - Ícones SVG com `<text>` não renderizam texto (resvg sem a feature `text`).
 
 ## Licença

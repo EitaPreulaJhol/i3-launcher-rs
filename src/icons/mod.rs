@@ -139,7 +139,7 @@ fn render_png(bytes: &[u8], size: u32) -> Result<Pixmap> {
     let (w, h) = scaled.dimensions();
     let mut data = scaled.into_raw();
     // tiny-skia expects premultiplied RGBA.
-    for pixel in data.chunks_exact_mut(4) {
+    for pixel in data.as_chunks_mut::<4>().0 {
         let alpha = pixel[3] as u32;
         for channel in &mut pixel[..3] {
             *channel = ((*channel as u32 * alpha) / 255) as u8;
