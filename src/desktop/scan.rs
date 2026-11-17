@@ -118,12 +118,14 @@ fn collect_desktop_files(root: &Path, dir: &Path, depth: usize, out: &mut Vec<(P
         if name.starts_with('.') {
             continue;
         }
-        let Ok(file_type) = entry.file_type() else {
+        // Follow symlinks: many packages install `.desktop` files as links
+        // into their own data directory (e.g. Discord).
+        let Ok(metadata) = std::fs::metadata(&path) else {
             continue;
         };
-        if file_type.is_dir() {
+        if metadata.is_dir() {
             collect_desktop_files(root, &path, depth + 1, out);
-        } else if file_type.is_file() && name.ends_with(".desktop") {
+        } else if metadata.is_file() && name.ends_with(".desktop") {
             let Ok(relative) = path.strip_prefix(root) else {
                 continue;
             };
@@ -244,6 +246,36 @@ mod tests {
         let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names, vec!["High", "Nested"]);
         assert_eq!(entries[1].id, "sub-nested");
+
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn follows_symlinked_desktop_files() {
+        let base = std::env::temp_dir().join(format!("i3l-symlink-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        let apps = base.join("applications");
+        let data = base.join("data");
+        fs::create_dir_all(&apps).unwrap();
+        fs::create_dir_all(&data).unwrap();
+        fs::write(
+            data.join("linked.desktop"),
+            "[Desktop Entry]\nType=Application\nName=Linked\nExec=linked\n",
+        )
+        .unwrap();
+        std::os::unix::fs::symlink(data.join("linked.desktop"), apps.join("linked.desktop"))
+            .unwrap();
+        // Broken symlinks must be skipped, not fail the scan.
+        std::os::unix::fs::symlink(
+            data.join("missing.desktop"),
+            apps.join("missing.desktop"),
+        )
+        .unwrap();
+
+        let entries = scan_dirs(&[apps], &Locale::default());
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names, vec!["Linked"]);
 
         let _ = fs::remove_dir_all(&base);
     }
