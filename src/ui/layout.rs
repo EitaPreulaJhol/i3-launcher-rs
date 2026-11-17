@@ -16,6 +16,10 @@ pub struct Layout {
     pub input_width: f32,
     pub list_x: f32,
     pub list_width: f32,
+    /// Space reserved at the left of the list for the `<` hint.
+    pub left_gutter: f32,
+    /// Space reserved at the right of the list for the `>` hint.
+    pub right_gutter: f32,
     /// Vertical padding, clamped so the text line fits in short strips.
     pub padding_y: f32,
     /// Height available for the selection pill / icons.
@@ -50,6 +54,21 @@ impl Layout {
     ) -> f32 {
         let icon = if show_icons { icon_size + gap } else { 0.0 };
         2.0 * item_padding + icon + label_width
+    }
+
+    /// X coordinate where the item cells start.
+    pub fn cells_x(&self) -> f32 {
+        self.list_x + self.left_gutter
+    }
+
+    /// X coordinate where the item cells must stop.
+    pub fn cells_right(&self) -> f32 {
+        self.list_x + self.list_width - self.right_gutter
+    }
+
+    /// Width available for item cells.
+    pub fn cells_width(&self) -> f32 {
+        (self.cells_right() - self.cells_x()).max(0.0)
     }
 
     /// Which cell (if any) contains the given x coordinate.

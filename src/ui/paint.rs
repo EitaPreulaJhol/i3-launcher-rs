@@ -252,10 +252,16 @@ impl Painter {
         }
 
         if layout.prev_more {
-            self.draw_scroll_hint(target, style, layout.list_x, "<", true);
+            self.draw_scroll_hint(target, style, layout.list_x, layout.left_gutter, "<");
         }
         if layout.next_more {
-            self.draw_scroll_hint(target, style, layout.list_x, ">", false);
+            self.draw_scroll_hint(
+                target,
+                style,
+                layout.cells_right(),
+                layout.right_gutter,
+                ">",
+            );
         }
 
         if style.panel_border_width > 0.0 {
@@ -276,20 +282,13 @@ impl Painter {
         &mut self,
         target: &mut Pixmap,
         style: &Style,
-        list_x: f32,
+        gutter_x: f32,
+        gutter_width: f32,
         glyph: &str,
-        left: bool,
     ) {
-        let width = target.width() as f32;
         let height = target.height() as f32;
         let text_width = self.text_width(glyph);
-        let x = if left {
-            list_x + 2.0
-        } else {
-            width - style.padding - text_width - 2.0
-        };
-        // Mask whatever is underneath the hint.
-        fill_rect(target, x - 3.0, 0.0, text_width + 6.0, height, style.bg);
+        let x = gutter_x + (gutter_width - text_width) / 2.0;
         self.draw_text(target, glyph, x, height, style.scroll_fg);
     }
 

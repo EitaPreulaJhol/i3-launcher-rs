@@ -97,47 +97,50 @@ impl App {
             offset = self.sel;
         }
 
-        let mut cells = Vec::new();
-        if len > 0 && list_width > 1.0 && self.sel < len {
-            cells = build_cells(
-                &self.items,
-                &self.filtered,
-                painter,
-                offset,
-                list_x,
-                list_width,
-                base,
-                item_gap,
-            );
+        // Reserve space for the `<`/`>` hints so they never cover an item.
+        let gutter = if len > 0 {
+            (painter.text_width("<") + 8.0).max(14.0)
+        } else {
+            0.0
+        };
 
-            // Selection fell after the viewport: start the viewport at the
-            // selection and fill it backwards with the items that still fit.
-            if self.sel >= offset + cells.len() {
-                let mut first = self.sel;
-                let mut used =
-                    base + painter.text_width(&self.items[self.filtered[first].index].label);
-                while first > 0 {
-                    let width = base
-                        + painter.text_width(&self.items[self.filtered[first - 1].index].label)
-                        + item_gap;
-                    if used + width > list_width {
-                        break;
-                    }
-                    used += width;
-                    first -= 1;
-                }
-                offset = first;
-                cells = build_cells(
+        let mut cells = Vec::new();
+        let mut left_gutter = 0.0;
+        let mut right_gutter = 0.0;
+        if len > 0 && list_width > 1.0 && self.sel < len {
+            // Two or three passes: one to know whether the `>` hint is needed,
+            // and extra ones when the viewport offset changes.
+            for _ in 0..3 {
+                let wanted_left = if offset > 0 { gutter } else { 0.0 };
+                left_gutter = wanted_left;
+                let available = (list_width - left_gutter - right_gutter).max(0.0);
+                let (new_offset, new_cells) = layout_viewport(
                     &self.items,
                     &self.filtered,
                     painter,
+                    self.sel,
                     offset,
-                    list_x,
-                    list_width,
+                    list_x + left_gutter,
+                    available,
                     base,
                     item_gap,
                 );
+                offset = new_offset;
+                cells = new_cells;
+
+                let more = cells
+                    .last()
+                    .map(|cell| cell.index + 1 < len)
+                    .unwrap_or(false);
+                let wanted_right = if more { gutter } else { 0.0 };
+                let stable = (if offset > 0 { gutter } else { 0.0 } - left_gutter).abs() < 0.5
+                    && (wanted_right - right_gutter).abs() < 0.5;
+                right_gutter = wanted_right;
+                if stable {
+                    break;
+                }
             }
+            left_gutter = if offset > 0 { gutter } else { 0.0 };
         }
 
         let next_more = cells
@@ -170,6 +173,8 @@ impl App {
             input_width,
             list_x,
             list_width,
+            left_gutter,
+            right_gutter,
             padding_y,
             content_height,
             cells,
@@ -289,7 +294,9 @@ impl App {
             Keysym::Down | Keysym::KP_Down => self.move_selection(1),
             Keysym::Prior | Keysym::KP_Prior => self.move_selection(-10),
             Keysym::Next | Keysym::KP_Next => self.move_selection(10),
-            Keysym::Tab | Keysym::KP_Tab => self.complete(behavior),
+            // Tab deliberately does nothing: it must never overwrite the
+            // query with the selected item's label.
+            Keysym::Tab | Keysym::KP_Tab => false,
             _ => {
                 if !mods.ctrl && !mods.alt && !mods.logo {
                     if let Some(c) = sym.key_char() {
@@ -446,18 +453,6 @@ impl App {
         self.sel = next;
         true
     }
-
-    fn complete(&mut self, behavior: &Behavior) -> bool {
-        let Some(label) = self.selected_item().map(|item| item.label.clone()) else {
-            return false;
-        };
-        self.query = label;
-        self.cursor = self.query.len();
-        self.sel = 0;
-        self.offset = 0;
-        self.refilter(behavior);
-        true
-    }
 }
 
 fn match_options(behavior: &Behavior) -> MatchOptions {
@@ -467,6 +462,50 @@ fn match_options(behavior: &Behavior) -> MatchOptions {
         sort: behavior.sort,
         max_results: behavior.max_results,
     }
+}
+
+/// Lay out the visible cells and make sure the selection is inside the view.
+#[allow(clippy::too_many_arguments)]
+fn layout_viewport(
+    items: &[Item],
+    filtered: &[Match],
+    painter: &mut Painter,
+    selected: usize,
+    mut offset: usize,
+    list_x: f32,
+    list_width: f32,
+    base: f32,
+    item_gap: f32,
+) -> (usize, Vec<Cell>) {
+    if filtered.is_empty() || list_width <= 1.0 || selected >= filtered.len() {
+        return (offset.min(filtered.len().saturating_sub(1)), Vec::new());
+    }
+
+    let mut cells = build_cells(
+        items, filtered, painter, offset, list_x, list_width, base, item_gap,
+    );
+
+    if selected >= offset + cells.len() {
+        // Selection fell after the viewport: start the viewport at the
+        // selection and fill it backwards with the items that still fit.
+        let mut first = selected;
+        let mut used = base + painter.text_width(&items[filtered[first].index].label);
+        while first > 0 {
+            let width =
+                base + painter.text_width(&items[filtered[first - 1].index].label) + item_gap;
+            if used + width > list_width {
+                break;
+            }
+            used += width;
+            first -= 1;
+        }
+        offset = first;
+        cells = build_cells(
+            items, filtered, painter, offset, list_x, list_width, base, item_gap,
+        );
+    }
+
+    (offset, cells)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -579,12 +618,54 @@ mod tests {
     }
 
     #[test]
-    fn tab_completes_with_selection() {
+    fn scroll_hints_get_their_own_gutter() {
+        let cfg = Config::default();
+        let mut painter = Painter::new(&cfg);
+        let items: Vec<Item> = (0..30)
+            .map(|i| {
+                Item::new(
+                    format!("Application {i:02}"),
+                    None,
+                    Action::Print(format!("app{i}")),
+                )
+            })
+            .collect();
+        let mut app = App::new(items, &cfg.behavior);
+
+        app.relayout(&mut painter, &cfg, 640.0, 20.0);
+        assert!(app.layout.next_more);
+        assert_eq!(app.layout.left_gutter, 0.0);
+        assert!(app.layout.right_gutter > 0.0);
+        assert_cells_inside_viewport(&app);
+
+        // Scrolling right also reserves space for the left hint.
+        app.sel = 20;
+        app.relayout(&mut painter, &cfg, 640.0, 20.0);
+        assert!(app.layout.offset > 0);
+        assert!(app.layout.left_gutter > 0.0);
+        assert_cells_inside_viewport(&app);
+    }
+
+    fn assert_cells_inside_viewport(app: &App) {
+        assert!(!app.layout.cells.is_empty());
+        let left = app.layout.cells_x();
+        let right = app.layout.cells_right();
+        for cell in &app.layout.cells {
+            assert!(cell.x + 0.1 >= left, "célula antes do viewport: {cell:?}");
+            assert!(
+                cell.x + cell.width <= right + 0.1,
+                "célula depois do viewport: {cell:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn tab_does_not_overwrite_the_query() {
         let mut app = self::app();
         type_text(&mut app, "term");
-        assert!(app.complete(&Behavior::default()));
-        assert_eq!(app.query, "Terminal");
-        assert_eq!(app.cursor, "Terminal".len());
+        app.handle_key(Keysym::Tab, Mods::default(), &Behavior::default());
+        assert_eq!(app.query, "term");
+        assert_eq!(app.cursor, 4);
     }
 
     #[test]

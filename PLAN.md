@@ -145,7 +145,6 @@ visíveis, e o resultado já sai no tamanho final.
 | `Home` / `End`          | início/fim do texto; repetir vai ao primeiro/último item |
 | `Backspace` / `Delete`  | apaga antes/depois do cursor |
 | `Ctrl+W` / `Ctrl+U`     | apaga palavra / linha |
-| `Tab`                   | completa com o item selecionado |
 | `PgUp` / `PgDn`         | salta 10 itens |
 | Clique / scroll         | seleciona / navega |
 
