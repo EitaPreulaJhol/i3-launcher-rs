@@ -34,9 +34,6 @@ rendering.
   selection.
 - **TOML styling**: `[style]` section with colors, radii, borders, spacing,
   font weight and 14 ready-made themes (`--themes`).
-- **Default theme faithful to `original_source/dmenu.rasi`**: light bar
-  (`#DEDEDE`/`#333333`), selection `#C5C5C5` with black text and a 1px
-  `#FF8C00` border, square corners, 20px height and `Sans 9` font.
 - TOML config with validation (`deny_unknown_fields`), dmenu-compatible flags.
 - Fast startup: ~25 ms to the first frame (release, 38 apps, fonts already in
   the OS cache).
