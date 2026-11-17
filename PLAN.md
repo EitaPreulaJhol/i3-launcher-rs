@@ -139,6 +139,7 @@ visíveis, e o resultado já sai no tamanho final.
 | ----------------------- | ---- |
 | `Esc`                   | sai (código 1) |
 | `Enter`                 | executa o item selecionado |
+| `Tab`                   | alterna apps (`.desktop`) ↔ comandos do `$PATH` |
 | `↑` / `↓`, `Ctrl+p/n`   | move seleção |
 | `←` / `→`               | move o item ativo |
 | `Ctrl+←` / `Ctrl+→`     | move o cursor de texto por palavra |
@@ -232,6 +233,8 @@ borda de 1px `#FF8C00`, cantos retos, `window padding 2px`,
       cache de medição de texto, `--dmenu`, validação de `Exec`, benchmark.
 - [x] **M4.5 — Estilo**: seção `[style]`, 14 temas prontos, raios/bordas de
       seleção e input, borda do painel, highlight do match, peso da fonte.
+- [x] **M4.6 — Modos**: `Tab` alterna apps `.desktop` e executáveis do `$PATH`
+      (sem ícones, execução direta, scan sob demanda).
 - [x] **M5 — Entrega**: README com instalação/bind do i3, `make install`,
       `cargo clippy -D warnings` limpo, testes de integração, release build.
 
@@ -243,7 +246,8 @@ scan .desktop:   1-2 ms
 janela X11:      0 ms (grab do teclado já ativo)
 fontes + tema:   8-9 ms (fontconfig/Adwaita)
 primeiro frame: 12-13 ms
-TOTAL:          23-25 ms até a strip visível
+TOTAL:          23-26 ms até a strip visível
+(primeiro Tab: +6-15 ms para varrer o $PATH; depois fica em cache)
 ```
 
 Desvios do plano original:

@@ -9,17 +9,36 @@ use crate::ui::layout::{Cell, Layout};
 use crate::ui::paint::Painter;
 use crate::x11::keys::Mods;
 
+/// Active item source.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    /// Applications from `.desktop` files (with icons).
+    Apps,
+    /// Every executable in `$PATH` (no icons).
+    Paths,
+}
+
+/// Prompt shown while the PATH mode is active.
+const PATH_PROMPT: &str = "PATH: ";
+
 /// What the launcher should do after handling an event.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Outcome {
     LaunchApp(usize),
     Shell(String),
+    Command(String),
     Print(String),
     Quit(i32),
 }
 
 pub struct App {
     pub items: Vec<Item>,
+    /// Items of the other mode, ready for `Tab`.
+    alternate: Vec<Item>,
+    /// Lazily fills `alternate` the first time Tab is pressed.
+    alternate_loader: Option<Box<dyn Fn() -> Vec<Item>>>,
+    pub mode: Mode,
+    tabs_enabled: bool,
     pub filtered: Vec<Match>,
     pub query: String,
     /// Byte offset of the text cursor inside `query`.
@@ -32,10 +51,40 @@ pub struct App {
 }
 
 impl App {
+    /// Single-list launcher (dmenu mode or tests): Tab does nothing.
     pub fn new(items: Vec<Item>, behavior: &Behavior) -> Self {
+        Self::build(items, Vec::new(), false, behavior)
+    }
+
+    /// Launcher with both modes and an eagerly built `$PATH` list.
+    pub fn with_path_mode(apps: Vec<Item>, paths: Vec<Item>, behavior: &Behavior) -> Self {
+        let tabs_enabled = !paths.is_empty();
+        Self::build(apps, paths, tabs_enabled, behavior)
+    }
+
+    /// Like [`App::with_path_mode`], but `$PATH` is scanned on the first Tab.
+    pub fn with_path_loader<F>(apps: Vec<Item>, loader: F, behavior: &Behavior) -> Self
+    where
+        F: Fn() -> Vec<Item> + 'static,
+    {
+        let mut app = Self::build(apps, Vec::new(), true, behavior);
+        app.alternate_loader = Some(Box::new(loader));
+        app
+    }
+
+    fn build(
+        items: Vec<Item>,
+        alternate: Vec<Item>,
+        tabs_enabled: bool,
+        behavior: &Behavior,
+    ) -> Self {
         let filtered = matching::filter(&items, "", &match_options(behavior));
         Self {
             items,
+            alternate,
+            alternate_loader: None,
+            mode: Mode::Apps,
+            tabs_enabled,
             filtered,
             query: String::new(),
             cursor: 0,
@@ -43,6 +92,23 @@ impl App {
             layout: Layout::default(),
             outcome: None,
             offset: 0,
+        }
+    }
+
+    pub fn mode(&self) -> Mode {
+        self.mode
+    }
+
+    /// Whether icons are drawn for the current mode (PATH mode has none).
+    pub fn shows_icons(&self) -> bool {
+        self.mode == Mode::Apps
+    }
+
+    /// Prompt for the current mode. PATH mode gets its own label.
+    pub fn prompt<'a>(&self, configured: &'a str) -> &'a str {
+        match self.mode {
+            Mode::Apps => configured,
+            Mode::Paths => PATH_PROMPT,
         }
     }
 
@@ -56,10 +122,11 @@ impl App {
         let style = &cfg.style;
         let padding = style.padding.max(0.0);
         let gap = style.gap.max(0.0);
-        let prompt_width = if appearance.prompt.is_empty() {
+        let prompt = self.prompt(&appearance.prompt);
+        let prompt_width = if prompt.is_empty() {
             0.0
         } else {
-            painter.text_width(&appearance.prompt)
+            painter.text_width(prompt)
         };
         let prompt_gap = if prompt_width > 0.0 { gap } else { 0.0 };
 
@@ -78,13 +145,8 @@ impl App {
         let padding_y = Layout::vertical_padding(style.padding, height, line_height);
         let content_height = (height - 2.0 * padding_y).max(0.0);
         let icon_size = Layout::icon_size(appearance.icon_size as f32, content_height);
-        let base = Layout::cell_width(
-            0.0,
-            appearance.show_icons,
-            icon_size,
-            gap,
-            style.item_padding,
-        );
+        let show_icons = appearance.show_icons && self.shows_icons();
+        let base = Layout::cell_width(0.0, show_icons, icon_size, gap, style.item_padding);
         let item_gap = style.item_gap.max(0.0);
 
         let len = self.filtered.len();
@@ -294,9 +356,7 @@ impl App {
             Keysym::Down | Keysym::KP_Down => self.move_selection(1),
             Keysym::Prior | Keysym::KP_Prior => self.move_selection(-10),
             Keysym::Next | Keysym::KP_Next => self.move_selection(10),
-            // Tab deliberately does nothing: it must never overwrite the
-            // query with the selected item's label.
-            Keysym::Tab | Keysym::KP_Tab => false,
+            Keysym::Tab | Keysym::KP_Tab => self.toggle_mode(behavior),
             _ => {
                 if !mods.ctrl && !mods.alt && !mods.logo {
                     if let Some(c) = sym.key_char() {
@@ -341,8 +401,34 @@ impl App {
         self.outcome = action.map(|action| match action {
             Action::LaunchApp(index) => Outcome::LaunchApp(index),
             Action::Shell(line) => Outcome::Shell(line),
+            Action::Command(name) => Outcome::Command(name),
             Action::Print(text) => Outcome::Print(text),
         });
+    }
+
+    fn toggle_mode(&mut self, behavior: &Behavior) -> bool {
+        if !self.tabs_enabled {
+            return false;
+        }
+        if self.alternate.is_empty() {
+            if let Some(loader) = self.alternate_loader.take() {
+                self.alternate = loader();
+            }
+            if self.alternate.is_empty() {
+                // No executables in PATH: stop offering the switch.
+                self.tabs_enabled = false;
+                return false;
+            }
+        }
+        std::mem::swap(&mut self.items, &mut self.alternate);
+        self.mode = match self.mode {
+            Mode::Apps => Mode::Paths,
+            Mode::Paths => Mode::Apps,
+        };
+        self.sel = 0;
+        self.offset = 0;
+        self.refilter(behavior);
+        true
     }
 
     fn refilter(&mut self, behavior: &Behavior) {
@@ -660,12 +746,94 @@ mod tests {
     }
 
     #[test]
-    fn tab_does_not_overwrite_the_query() {
+    fn tab_switches_to_path_mode_and_back() {
+        let apps = vec![Item::new(
+            "Firefox".into(),
+            Some("firefox".into()),
+            Action::Print("firefox".into()),
+        )];
+        let paths = vec![
+            Item::new("firefox".into(), None, Action::Command("firefox".into())),
+            Item::new("git".into(), None, Action::Command("git".into())),
+        ];
+        let mut app = App::with_path_mode(apps, paths, &Behavior::default());
+
+        assert_eq!(app.mode(), Mode::Apps);
+        assert!(app.shows_icons());
+        assert_eq!(app.prompt("Run: "), "Run: ");
+
+        type_text(&mut app, "gi");
+        assert_eq!(app.query, "gi");
+
+        assert!(app.handle_key(Keysym::Tab, Mods::default(), &Behavior::default()));
+        assert_eq!(app.mode(), Mode::Paths);
+        assert!(!app.shows_icons());
+        assert_eq!(app.prompt("Run: "), "PATH: ");
+        assert_eq!(app.query, "gi");
+        assert_eq!(app.selected_item().unwrap().label, "git");
+
+        assert!(app.handle_key(Keysym::Tab, Mods::default(), &Behavior::default()));
+        assert_eq!(app.mode(), Mode::Apps);
+        assert!(app.shows_icons());
+        assert_eq!(app.query, "gi");
+    }
+
+    #[test]
+    fn path_items_are_loaded_once_on_first_tab() {
+        use std::cell::Cell;
+        use std::rc::Rc;
+
+        let calls = Rc::new(Cell::new(0));
+        let calls_loader = calls.clone();
+        let apps = vec![Item::new(
+            "Firefox".into(),
+            None,
+            Action::Print("firefox".into()),
+        )];
+        let mut app = App::with_path_loader(
+            apps,
+            move || {
+                calls_loader.set(calls_loader.get() + 1);
+                vec![Item::new(
+                    "htop".into(),
+                    None,
+                    Action::Command("htop".into()),
+                )]
+            },
+            &Behavior::default(),
+        );
+
+        assert_eq!(calls.get(), 0);
+        app.handle_key(Keysym::Tab, Mods::default(), &Behavior::default());
+        assert_eq!(calls.get(), 1);
+        assert_eq!(app.mode(), Mode::Paths);
+        app.handle_key(Keysym::Tab, Mods::default(), &Behavior::default());
+        app.handle_key(Keysym::Tab, Mods::default(), &Behavior::default());
+        assert_eq!(calls.get(), 1, "PATH must be scanned only once");
+        assert_eq!(app.mode(), Mode::Paths);
+    }
+
+    #[test]
+    fn tab_does_not_overwrite_the_query_without_modes() {
         let mut app = self::app();
         type_text(&mut app, "term");
         app.handle_key(Keysym::Tab, Mods::default(), &Behavior::default());
         assert_eq!(app.query, "term");
         assert_eq!(app.cursor, 4);
+        assert_eq!(app.mode(), Mode::Apps);
+    }
+
+    #[test]
+    fn path_mode_activates_commands() {
+        let paths = vec![Item::new(
+            "htop".into(),
+            None,
+            Action::Command("htop".into()),
+        )];
+        let mut app = App::with_path_mode(Vec::new(), paths, &Behavior::default());
+        app.handle_key(Keysym::Tab, Mods::default(), &Behavior::default());
+        app.handle_key(Keysym::Return, Mods::default(), &Behavior::default());
+        assert_eq!(app.outcome, Some(Outcome::Command("htop".into())));
     }
 
     #[test]

@@ -94,14 +94,9 @@ impl Painter {
 
         target.fill(style.bg.to_tiny_skia());
 
-        if !appearance.prompt.is_empty() {
-            self.draw_text(
-                target,
-                &appearance.prompt,
-                layout.prompt_x,
-                height,
-                style.prompt_fg,
-            );
+        let prompt = app.prompt(&appearance.prompt);
+        if !prompt.is_empty() {
+            self.draw_text(target, prompt, layout.prompt_x, height, style.prompt_fg);
         }
 
         // Optional rounded box behind the input field.
@@ -202,7 +197,7 @@ impl Painter {
             };
 
             let mut label_x = cell.x + style.item_padding;
-            if appearance.show_icons {
+            if appearance.show_icons && app.shows_icons() {
                 let icon_size =
                     Layout::icon_size(appearance.icon_size as f32, layout.content_height);
                 let icon_y = (height - icon_size) / 2.0;

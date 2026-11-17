@@ -23,6 +23,9 @@ software.
   no estilo dmenu/readline.
 - Execução correta do `Exec` do Desktop Entry (quoting, field codes, `Terminal=true`
   e `Path=`), com `setsid` quando disponível.
+- Dois modos com `Tab`: aplicativos `.desktop` (com ícones) e comandos do
+  `$PATH` (sem ícones, executados direto). O `PATH` é lido sob demanda no
+  primeiro Tab.
 - Modo dmenu (`--dmenu`) para usar em pipes: lê linhas do stdin e imprime a seleção.
 - **Estilo no TOML**: seção `[style]` com cores, raios, bordas, espaçamentos,
   peso da fonte e 14 temas prontos (`--themes`).
@@ -151,6 +154,7 @@ i3-launcher --theme catppuccin-latte
 | Tecla | Ação |
 | --- | --- |
 | `Enter` | executa o item selecionado |
+| `Tab` | alterna apps (`.desktop`, com ícones) ↔ comandos do `$PATH` (sem ícones) |
 | `Esc` | fecha (código 1) |
 | `↑` `↓` / `Ctrl+P` `Ctrl+N` | move a seleção |
 | `PgUp` `PgDn` | salta 10 itens |
@@ -162,6 +166,10 @@ i3-launcher --theme catppuccin-latte
 | `Backspace` `Delete` / `Ctrl+H` `Ctrl+D` | apaga caractere |
 | `Ctrl+W` `Ctrl+U` `Ctrl+K` | apaga palavra / até o início / até o fim |
 | clique / scroll | seleciona / navega |
+
+No modo `--dmenu` o `Tab` não tem efeito (a lista vem do stdin). O modo PATH
+mostra o prompt `PATH: ` e executa o binário escolhido diretamente, sem shell
+intermediário.
 
 ### Modo dmenu
 

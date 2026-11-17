@@ -1,5 +1,8 @@
 //! Items shown by the launcher and the action attached to each one.
 
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
+
 use crate::desktop::{parser::DesktopEntry, scan};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -8,6 +11,8 @@ pub enum Action {
     LaunchApp(usize),
     /// Run a command line through the shell.
     Shell(String),
+    /// Execute a program found in `$PATH` directly (no shell).
+    Command(String),
     /// Write the label to stdout.
     Print(String),
 }
@@ -59,6 +64,65 @@ pub fn load_entries() -> Vec<DesktopEntry> {
     scan::scan()
 }
 
+/// Build items for every executable found in `$PATH`, sorted by name.
+pub fn path_items() -> Vec<Item> {
+    let Some(path) = std::env::var_os("PATH") else {
+        return Vec::new();
+    };
+    path_items_in(&std::env::split_paths(&path).collect::<Vec<_>>())
+}
+
+/// Same as [`path_items`], but over an explicit list of directories.
+pub fn path_items_in(dirs: &[PathBuf]) -> Vec<Item> {
+    let mut seen = HashSet::new();
+    let mut items = Vec::new();
+
+    for dir in dirs {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let Ok(name) = entry.file_name().into_string() else {
+                continue;
+            };
+            if name.starts_with('.') {
+                continue;
+            }
+            let path = entry.path();
+            if !is_executable_file(&path) {
+                continue;
+            }
+            // PATH precedence: the first directory with an executable wins.
+            if !seen.insert(name.clone()) {
+                continue;
+            }
+            items.push(Item::new(name.clone(), None, Action::Command(name)));
+        }
+    }
+
+    items.sort_by(|a, b| {
+        a.label
+            .to_lowercase()
+            .cmp(&b.label.to_lowercase())
+            .then_with(|| a.label.cmp(&b.label))
+    });
+    items
+}
+
+fn is_executable_file(path: &Path) -> bool {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::metadata(path)
+            .map(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false)
+    }
+    #[cfg(not(unix))]
+    {
+        path.is_file()
+    }
+}
+
 /// Build items from stdin lines (dmenu mode).
 pub fn from_lines(lines: impl IntoIterator<Item = String>, execute: bool) -> Vec<Item> {
     lines
@@ -99,6 +163,53 @@ mod tests {
         assert_eq!(items[0].icon.as_deref(), Some("firefox"));
         assert!(items[0].search.contains("browser"));
         assert_eq!(items[0].action, Action::LaunchApp(0));
+    }
+
+    #[test]
+    fn path_items_are_unique_executables() {
+        let base = std::env::temp_dir().join(format!("i3l-path-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let first = base.join("a");
+        let second = base.join("b");
+        std::fs::create_dir_all(&first).unwrap();
+        std::fs::create_dir_all(&second).unwrap();
+        for (dir, name) in [
+            (&first, "alpha"),
+            (&first, "beta"),
+            (&second, "alpha"), // shadowed by the first PATH entry
+            (&second, "gamma"),
+            (&second, ".hidden"),
+            (&second, "not-exec"),
+            (&first, "delta-shadow"), // non-executable here, executable in `second`
+            (&second, "delta-shadow"),
+        ] {
+            std::fs::write(dir.join(name), b"#!/bin/sh\n").unwrap();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let mode = if name == "not-exec" || (name == "delta-shadow" && dir == &first) {
+                    0o644
+                } else {
+                    0o755
+                };
+                std::fs::set_permissions(dir.join(name), std::fs::Permissions::from_mode(mode))
+                    .unwrap();
+            }
+        }
+        // Directories must be ignored even if they are executable.
+        std::fs::create_dir_all(second.join("a-directory")).unwrap();
+
+        let labels: Vec<String> = path_items_in(&[first.clone(), second.clone()])
+            .into_iter()
+            .map(|item| item.label)
+            .collect();
+        assert_eq!(labels, vec!["alpha", "beta", "delta-shadow", "gamma"]);
+        assert!(matches!(
+            path_items_in(&[first]).first().map(|item| &item.action),
+            Some(Action::Command(name)) if name == "alpha"
+        ));
+
+        let _ = std::fs::remove_dir_all(&base);
     }
 
     #[test]
