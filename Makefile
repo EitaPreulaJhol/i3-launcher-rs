@@ -1,15 +1,15 @@
-# i3-launcher-rs — atalhos de desenvolvimento
+# i3-launcher-rs — development shortcuts
 #
-#   make            # build release
-#   make install    # compila e instala em ~/.local/bin
-#   make uninstall  # remove o binário instalado
-#   make test       # testes
+#   make            # release build
+#   make install    # build and install into ~/.local/bin
+#   make uninstall  # remove the installed binary
+#   make test       # tests
 #   make lint       # clippy + fmt --check
-#   make run        # executa
+#   make run        # run
 #
-# Instalação em outro local:
+# Installing elsewhere:
 #   make install PREFIX=/usr/local
-#   make install PREFIX=/usr DESTDIR=/tmp/pkg   # empacotamento
+#   make install PREFIX=/usr DESTDIR=/tmp/pkg   # packaging
 
 PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin

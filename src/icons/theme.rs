@@ -491,6 +491,6 @@ mod tests {
 
     #[test]
     fn rejects_unknown_values() {
-        assert!(ThemeIndex::parse_str("lixo", Path::new("/tmp")).is_none());
+        assert!(ThemeIndex::parse_str("garbage", Path::new("/tmp")).is_none());
     }
 }

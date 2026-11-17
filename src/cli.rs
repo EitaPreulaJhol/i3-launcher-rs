@@ -48,48 +48,48 @@ pub struct Options {
 }
 
 const HELP: &str = "\
-i3-launcher-rs - launcher estilo dmenu com ícones para o i3
+i3-launcher-rs - dmenu-style launcher with icons for i3
 
-USO:
-    i3-launcher [OPÇÕES]
+USAGE:
+    i3-launcher [OPTIONS]
 
-OPÇÕES:
-    -c, --config <ARQUIVO>     Caminho do config TOML
-        --theme <NOME>         Tema de cores (sobrescreve o do config)
-        --themes               Lista os temas disponíveis e sai
-    -p, --prompt <TEXTO>       Texto do prompt (padrão: \"Run: \")
-    -b, --bottom               Coloca a strip na base do monitor
-    -e, --edge <top|bottom>    Borda do monitor
-    -m, --monitor <ALVO>       focused | primary | pointer | ÍNDICE | NOME
-        --height <PX>          Altura da strip
-        --margin <PX>          Margem horizontal externa
-        --offset <PX>          Distância da borda
-        --width <PX|%>         Largura da strip
+OPTIONS:
+    -c, --config <FILE>        Path to the TOML config
+        --theme <NAME>         Color theme (overrides the one from the config)
+        --themes               List the available themes and exit
+    -p, --prompt <TEXT>        Prompt text (default: \"Run: \")
+    -b, --bottom               Place the strip at the bottom of the monitor
+    -e, --edge <top|bottom>    Monitor edge
+    -m, --monitor <TARGET>     focused | primary | pointer | INDEX | NAME
+        --height <PX>          Strip height
+        --margin <PX>          Outer horizontal margin
+        --offset <PX>          Distance from the edge
+        --width <PX|%>         Strip width
         --align <left|center|right>
-    -fn, --font <FAMÍLIA>      Família da fonte
-        --font-size <PX>       Tamanho da fonte
-        --icon-size <PX>       Tamanho dos ícones (padrão: 24)
-        --no-icons             Não desenha ícones
-        --terminal <CMD>       Terminal para entradas com Terminal=true
-        --case-sensitive       Busca sensível a maiúsculas
+    -fn, --font <FAMILY>       Font family
+        --font-size <PX>       Font size
+        --icon-size <PX>       Icon size (default: 24)
+        --no-icons             Do not draw icons
+        --terminal <CMD>       Terminal for entries with Terminal=true
+        --case-sensitive       Case-sensitive search
         --match <prefix|substring|fuzzy>
-    -d, --dmenu                Lê itens do stdin e imprime a seleção
-        --exec                 Com --dmenu, executa a seleção via shell
-        --print                Imprime a seleção em vez de executar
-    -i                          Sinônimo de --ignore-case (padrão)
-    -nb, --normal-bg <COR>     Cor de fundo normal
-    -nf, --normal-fg <COR>     Cor de texto normal
-    -sb, --selected-bg <COR>   Cor de fundo da seleção
-    -sf, --selected-fg <COR>   Cor de texto da seleção
-    -h, --help                 Mostra esta ajuda
-    -v, --version              Mostra a versão
+    -d, --dmenu                Read items from stdin and print the selection
+        --exec                 With --dmenu, run the selection through the shell
+        --print                Print the selection instead of running it
+    -i                         Alias for --ignore-case (default)
+    -nb, --normal-bg <COLOR>   Normal background color
+    -nf, --normal-fg <COLOR>   Normal text color
+    -sb, --selected-bg <COLOR> Selected background color
+    -sf, --selected-fg <COLOR> Selected text color
+    -h, --help                 Show this help
+    -v, --version              Show the version
 
-TECLAS:
-    Tab                        Alterna apps (.desktop) e comandos do $PATH
-    Enter                      Executa o item selecionado
-    Esc                        Fecha
+KEYS:
+    Tab                        Switch between apps (.desktop) and $PATH commands
+    Enter                      Run the selected item
+    Esc                        Close
 
-CORES: #rgb, #rrggbb ou #rrggbbaa.
+COLORS: #rgb, #rrggbb or #rrggbbaa.
 
 CONFIG: $I3L_CONFIG, $XDG_CONFIG_HOME/i3-launcher/config.toml,
         ~/.config/i3-launcher/config.toml
@@ -115,7 +115,7 @@ where
             } else {
                 match args.next() {
                     Some(v) => Ok(v),
-                    None => bail!("a opção `{flag}` exige um valor"),
+                    None => bail!("option `{flag}` requires a value"),
                 }
             }
         };
@@ -153,7 +153,7 @@ where
             "-l" | "--lines" => {
                 let _ = next_value(&flag)?;
                 opts.warnings
-                    .push("-l (lista vertical) ainda não é suportado; usando uma linha".into());
+                    .push("-l (vertical list) is not supported yet; using a single line".into());
             }
             "-f" => {
                 // dmenu's "grab keyboard before reading stdin": we always grab early.
@@ -161,9 +161,9 @@ where
             "-w" | "--embed" => {
                 let _ = next_value(&flag)?;
                 opts.warnings
-                    .push("-w (embedding) ainda não é suportado".into());
+                    .push("-w (embedding) is not supported yet".into());
             }
-            other => bail!("opção desconhecida `{other}` (use --help)"),
+            other => bail!("unknown option `{other}` (use --help)"),
         }
     }
 
@@ -173,7 +173,7 @@ where
 fn parse_number<T: std::str::FromStr>(flag: &str, raw: &str) -> Result<T> {
     raw.trim()
         .parse()
-        .map_err(|_| anyhow::anyhow!("valor inválido para `{flag}`: `{raw}`"))
+        .map_err(|_| anyhow::anyhow!("invalid value for `{flag}`: `{raw}`"))
 }
 
 /// Parse a value whose `FromStr::Err` is a human readable message.
@@ -184,7 +184,7 @@ where
 {
     raw.trim()
         .parse()
-        .map_err(|error| anyhow::anyhow!("valor inválido para `{flag}`: {error}"))
+        .map_err(|error| anyhow::anyhow!("invalid value for `{flag}`: {error}"))
 }
 
 /// Apply CLI overrides on top of the loaded configuration.
@@ -251,7 +251,7 @@ pub fn apply(opts: &Options, cfg: &mut Config) -> Result<()> {
         if let Some(raw) = raw {
             *slot = raw
                 .parse()
-                .map_err(|e| anyhow::anyhow!("cor inválida `{raw}`: {e}"))?;
+                .map_err(|e| anyhow::anyhow!("invalid color `{raw}`: {e}"))?;
         }
     }
 

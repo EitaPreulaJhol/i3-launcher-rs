@@ -324,7 +324,7 @@ mod tests {
         for palette in PALETTES {
             for (key, value) in palette.colors() {
                 value.parse::<Color>().unwrap_or_else(|err| {
-                    panic!("tema {}: cor inválida em {key}: {err}", palette.name)
+                    panic!("theme {}: invalid color in {key}: {err}", palette.name)
                 });
             }
         }
@@ -339,7 +339,7 @@ mod tests {
     #[test]
     fn lookup_is_case_insensitive() {
         assert_eq!(find("GRUVBOX-DARK").unwrap().name, "gruvbox-dark");
-        assert!(find("nao-existe").is_none());
+        assert!(find("does-not-exist").is_none());
     }
 
     #[test]
@@ -349,7 +349,7 @@ mod tests {
             palette
                 .highlight_fg
                 .parse::<Color>()
-                .unwrap_or_else(|err| panic!("tema {}: {err}", palette.name));
+                .unwrap_or_else(|err| panic!("theme {}: {err}", palette.name));
         }
     }
 }

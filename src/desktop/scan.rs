@@ -76,7 +76,7 @@ pub fn scan_dirs(dirs: &[PathBuf], locale: &Locale) -> Vec<DesktopEntry> {
             let entry = match parser::parse_file(&path, &id, locale) {
                 Ok(entry) => entry,
                 Err(err) => {
-                    debug(&format!("ignorando entrada: {err}"));
+                    debug(&format!("skipping entry: {err}"));
                     continue;
                 }
             };
@@ -267,11 +267,8 @@ mod tests {
         std::os::unix::fs::symlink(data.join("linked.desktop"), apps.join("linked.desktop"))
             .unwrap();
         // Broken symlinks must be skipped, not fail the scan.
-        std::os::unix::fs::symlink(
-            data.join("missing.desktop"),
-            apps.join("missing.desktop"),
-        )
-        .unwrap();
+        std::os::unix::fs::symlink(data.join("missing.desktop"), apps.join("missing.desktop"))
+            .unwrap();
 
         let entries = scan_dirs(&[apps], &Locale::default());
         let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();

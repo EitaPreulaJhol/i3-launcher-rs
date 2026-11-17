@@ -71,7 +71,7 @@ impl IconCache {
                 Ok(pixmap) => Some(pixmap),
                 Err(err) => {
                     if std::env::var_os("I3L_DEBUG").is_some() {
-                        eprintln!("i3-launcher: ícone `{}`: {err:#}", path.display());
+                        eprintln!("i3-launcher: icon `{}`: {err:#}", path.display());
                     }
                     None
                 }
@@ -84,8 +84,8 @@ impl IconCache {
 
 /// Render an icon file at (at most) `size` pixels on its longest side.
 pub fn render_icon(path: &Path, size: u32) -> Result<Pixmap> {
-    let bytes = std::fs::read(path)
-        .with_context(|| format!("não foi possível ler o ícone `{}`", path.display()))?;
+    let bytes =
+        std::fs::read(path).with_context(|| format!("could not read icon `{}`", path.display()))?;
     let ext = path
         .extension()
         .and_then(|e| e.to_str())
@@ -94,13 +94,13 @@ pub fn render_icon(path: &Path, size: u32) -> Result<Pixmap> {
     match ext.as_str() {
         "svg" | "svgz" => render_svg(&bytes, size),
         "png" => render_png(&bytes, size),
-        other => bail!("formato de ícone não suportado: `{other}`"),
+        other => bail!("unsupported icon format: `{other}`"),
     }
 }
 
 fn target_dimensions(width: f32, height: f32, size: u32) -> Result<(u32, u32, f32)> {
     if !(width.is_finite() && height.is_finite()) || width <= 0.0 || height <= 0.0 {
-        bail!("ícone com dimensões inválidas ({width}x{height})");
+        bail!("icon with invalid dimensions ({width}x{height})");
     }
     let box_size = size.max(1) as f32;
     let scale = box_size / width.max(height);
@@ -111,11 +111,11 @@ fn target_dimensions(width: f32, height: f32, size: u32) -> Result<(u32, u32, f3
 
 fn render_svg(bytes: &[u8], size: u32) -> Result<Pixmap> {
     let tree = resvg::usvg::Tree::from_data(bytes, &resvg::usvg::Options::default())
-        .context("SVG inválido")?;
+        .context("invalid SVG")?;
     let dimensions = tree.size();
     let (width, height) = (dimensions.width(), dimensions.height());
     let (pw, ph, scale) = target_dimensions(width, height, size)?;
-    let mut pixmap = Pixmap::new(pw, ph).context("não foi possível alocar o pixmap do ícone")?;
+    let mut pixmap = Pixmap::new(pw, ph).context("could not allocate the icon pixmap")?;
     resvg::render(
         &tree,
         Transform::from_scale(scale, scale),
@@ -126,7 +126,7 @@ fn render_svg(bytes: &[u8], size: u32) -> Result<Pixmap> {
 
 fn render_png(bytes: &[u8], size: u32) -> Result<Pixmap> {
     let image = image::load_from_memory_with_format(bytes, image::ImageFormat::Png)
-        .context("PNG inválido")?
+        .context("invalid PNG")?
         .to_rgba8();
     let (width, height) = image.dimensions();
     let (pw, ph, _) = target_dimensions(width as f32, height as f32, size)?;
@@ -145,8 +145,8 @@ fn render_png(bytes: &[u8], size: u32) -> Result<Pixmap> {
             *channel = ((*channel as u32 * alpha) / 255) as u8;
         }
     }
-    let size = IntSize::from_wh(w, h).context("tamanho de ícone inválido")?;
-    Pixmap::from_vec(data, size).context("pixmap de ícone inválido")
+    let size = IntSize::from_wh(w, h).context("invalid icon size")?;
+    Pixmap::from_vec(data, size).context("invalid icon pixmap")
 }
 
 #[cfg(test)]

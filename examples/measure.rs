@@ -6,7 +6,7 @@ fn main() {
     let cfg = Config::default();
     let mut painter = Painter::new(&cfg);
     println!(
-        "tema: {} fonte: {}",
+        "theme: {} font: {}",
         painter.icon_theme(),
         cfg.appearance.font
     );
@@ -16,7 +16,7 @@ fn main() {
         "Files",
         "Terminal",
         "Alacritty",
-        "Configurações",
+        "Settings",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     ] {
         println!("{text:?} -> {:.2}px", painter.text_width(text));

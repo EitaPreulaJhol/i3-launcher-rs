@@ -39,9 +39,9 @@ impl Keymap {
         let count = setup.max_keycode.saturating_sub(min_keycode) + 1;
         let reply = conn
             .get_keyboard_mapping(min_keycode, count)
-            .context("GetKeyboardMapping falhou")?
+            .context("GetKeyboardMapping failed")?
             .reply()
-            .context("GetKeyboardMapping sem resposta")?;
+            .context("GetKeyboardMapping returned no reply")?;
         Ok(Self {
             min_keycode,
             keysyms_per_keycode: reply.keysyms_per_keycode,
