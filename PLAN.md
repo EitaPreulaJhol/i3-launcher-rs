@@ -159,7 +159,7 @@ Busca: `$I3L_CONFIG`, `--config`, `$XDG_CONFIG_HOME/i3-launcher/config.toml`,
 ```toml
 [bar]
 edge = "top"        # top | bottom
-height = 44
+height = 20         # strip fina; ícones são limitados à altura
 margin = 0
 offset = 0
 width = "100%"      # px ou "%"

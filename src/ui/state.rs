@@ -73,7 +73,10 @@ impl App {
         }
         let list_width = (width - padding - list_x).max(0.0);
 
-        let icon_size = appearance.icon_size as f32;
+        let line_height = painter.line_height();
+        let padding_y = Layout::vertical_padding(style.padding, height, line_height);
+        let content_height = (height - 2.0 * padding_y).max(0.0);
+        let icon_size = Layout::icon_size(appearance.icon_size as f32, content_height);
         let base = Layout::cell_width(
             0.0,
             appearance.show_icons,
@@ -166,7 +169,8 @@ impl App {
             input_width,
             list_x,
             list_width,
-            content_height: (height - 2.0 * padding).max(0.0),
+            padding_y,
+            content_height,
             cells,
             prev_more: offset > 0,
             next_more,

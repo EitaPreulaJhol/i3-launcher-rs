@@ -345,7 +345,7 @@ impl Default for BarConfig {
         Self {
             edge: Edge::Top,
             offset: 0,
-            height: 44,
+            height: 20,
             margin: 0,
             width: None,
             align: Align::Left,

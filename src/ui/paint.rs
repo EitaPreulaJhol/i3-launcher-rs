@@ -9,6 +9,7 @@ use tiny_skia::{
 
 use crate::config::{Color, Config, Style};
 use crate::icons::IconCache;
+use crate::ui::layout::Layout;
 use crate::ui::state::App;
 
 pub struct Painter {
@@ -43,6 +44,10 @@ impl Painter {
 
     pub fn font_size(&self) -> f32 {
         self.font_size
+    }
+
+    pub fn line_height(&self) -> f32 {
+        self.line_height
     }
 
     pub fn icon_theme(&self) -> &str {
@@ -103,7 +108,7 @@ impl Painter {
         if style.input_bg.is_some() || style.input_border_width > 0.0 {
             let padding = style.padding.max(0.0);
             let x = (layout.input_x - style.gap * 0.5).max(padding);
-            let y = padding;
+            let y = layout.padding_y;
             let box_width = (layout.list_x - style.gap * 0.5 - x).max(0.0);
             let box_height = layout.content_height;
             if let Some(background) = style.input_bg {
@@ -171,7 +176,7 @@ impl Painter {
                 fill_rounded(
                     target,
                     cell.x,
-                    style.padding,
+                    layout.padding_y,
                     cell.width,
                     layout.content_height,
                     style.selection_radius,
@@ -181,7 +186,7 @@ impl Painter {
                     stroke_rounded(
                         target,
                         cell.x,
-                        style.padding,
+                        layout.padding_y,
                         cell.width,
                         layout.content_height,
                         style.selection_radius,
@@ -198,7 +203,8 @@ impl Painter {
 
             let mut label_x = cell.x + style.item_padding;
             if appearance.show_icons {
-                let icon_size = appearance.icon_size as f32;
+                let icon_size =
+                    Layout::icon_size(appearance.icon_size as f32, layout.content_height);
                 let icon_y = (height - icon_size) / 2.0;
                 match self.icons.get(item.icon.as_deref()) {
                     Some(icon) => {

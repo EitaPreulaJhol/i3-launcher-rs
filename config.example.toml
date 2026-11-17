@@ -6,8 +6,8 @@
 [bar]
 # Borda do monitor onde a strip aparece: "top" ou "bottom".
 edge = "top"
-# Altura da strip em pixels.
-height = 44
+# Altura da strip em pixels (20 = barra fina; aumente para ícones maiores).
+height = 20
 # Margem horizontal externa (aplicada dos dois lados).
 margin = 0
 # Distância até a borda. Use, por exemplo, 24 para ficar logo abaixo do i3bar.

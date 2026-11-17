@@ -16,6 +16,8 @@ pub struct Layout {
     pub input_width: f32,
     pub list_x: f32,
     pub list_width: f32,
+    /// Vertical padding, clamped so the text line fits in short strips.
+    pub padding_y: f32,
     /// Height available for the selection pill / icons.
     pub content_height: f32,
     pub cells: Vec<Cell>,
@@ -26,6 +28,18 @@ pub struct Layout {
 }
 
 impl Layout {
+    /// Vertical padding clamped so at least one text line fits.
+    pub fn vertical_padding(requested: f32, height: f32, line_height: f32) -> f32 {
+        requested
+            .max(0.0)
+            .min(((height - line_height) / 2.0).max(0.0))
+    }
+
+    /// Icon size clamped to the available content height.
+    pub fn icon_size(requested: f32, content_height: f32) -> f32 {
+        requested.max(1.0).min(content_height.max(1.0))
+    }
+
     /// Cell width for an item with the given label width.
     pub fn cell_width(
         label_width: f32,
@@ -50,6 +64,24 @@ impl Layout {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn vertical_padding_adapts_to_short_strips() {
+        // Tall strip: the requested padding is kept.
+        assert_eq!(Layout::vertical_padding(8.0, 44.0, 19.0), 8.0);
+        // 20px strip: only the leftover space around the line is used.
+        let padding = Layout::vertical_padding(8.0, 20.0, 18.9);
+        assert!((padding - 0.55).abs() < 0.01);
+        // Strip shorter than the line: no padding.
+        assert_eq!(Layout::vertical_padding(8.0, 10.0, 19.0), 0.0);
+    }
+
+    #[test]
+    fn icon_size_is_clamped_to_content_height() {
+        assert_eq!(Layout::icon_size(24.0, 30.0), 24.0);
+        assert_eq!(Layout::icon_size(24.0, 18.9), 18.9);
+        assert_eq!(Layout::icon_size(24.0, 0.0), 1.0);
+    }
 
     #[test]
     fn cell_width_accounts_for_icon_and_padding() {
