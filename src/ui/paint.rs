@@ -80,7 +80,7 @@ impl Painter {
 
     fn attrs<'a>(&self, family: &'a str) -> Attrs<'a> {
         Attrs::new()
-            .family(Family::Name(family))
+            .family(parse_family(family))
             .weight(Weight(self.font_weight))
     }
 
@@ -239,6 +239,7 @@ impl Painter {
                 label_x += icon_size + style.gap;
             }
 
+            let highlight_color = style.highlight_fg.unwrap_or(foreground);
             self.draw_text_highlighted(
                 target,
                 &item.label,
@@ -246,7 +247,7 @@ impl Painter {
                 label_x,
                 height,
                 foreground,
-                style.highlight_fg,
+                highlight_color,
             );
         }
 
@@ -488,6 +489,19 @@ fn to_cosmic(color: Color) -> cosmic_text::Color {
     cosmic_text::Color::rgba(color.r, color.g, color.b, color.a)
 }
 
+/// Map CSS-ish generic families (as used by rofi/Pango, e.g. "Sans 9") to
+/// cosmic-text's generic families.
+fn parse_family(name: &str) -> Family<'_> {
+    match name.trim().to_ascii_lowercase().as_str() {
+        "sans" | "sans-serif" | "sans serif" => Family::SansSerif,
+        "serif" => Family::Serif,
+        "monospace" | "mono" => Family::Monospace,
+        "cursive" => Family::Cursive,
+        "fantasy" => Family::Fantasy,
+        _ => Family::Name(name),
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn blend_rect(
     data: &mut [u8],
@@ -666,6 +680,17 @@ mod tests {
         assert_eq!(spans.len(), 2);
         let joined: String = spans.iter().map(|(text, _)| *text).collect();
         assert_eq!(joined, "ab");
+    }
+
+    #[test]
+    fn generic_families_are_mapped() {
+        assert!(matches!(parse_family("Sans"), Family::SansSerif));
+        assert!(matches!(parse_family("sans-serif"), Family::SansSerif));
+        assert!(matches!(parse_family("Monospace"), Family::Monospace));
+        assert!(matches!(
+            parse_family("DejaVu Sans"),
+            Family::Name(name) if name == "DejaVu Sans"
+        ));
     }
 
     #[test]

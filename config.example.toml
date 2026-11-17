@@ -1,7 +1,11 @@
 # i3-launcher-rs — configuração de exemplo
 #
 # Copie para ~/.config/i3-launcher/config.toml (ou passe --config <arquivo>).
-# Todos os campos são opcionais; os valores abaixo são os padrões.
+# Todos os campos são opcionais; os valores abaixo são os padrões, baseados em
+# `original_source/dmenu.rasi` (mesmo esquema visual da barra do i3/polybar).
+#
+#   fundo #DEDEDE · texto #333333 · seleção #C5C5C5 (texto preto)
+#   borda da seleção de 1px #FF8C00 · cantos retos · altura 20px
 
 [bar]
 # Borda do monitor onde a strip aparece: "top" ou "bottom".
@@ -13,7 +17,7 @@ margin = 0
 # Distância até a borda. Use, por exemplo, 24 para ficar logo abaixo do i3bar.
 offset = 0
 # Largura: pixels ou porcentagem ("80%"). Sem esta chave ocupa a largura toda
-# menos as margens.
+# menos as margens (window { width: 100%; } no rasi).
 # width = "100%"
 # Alinhamento horizontal quando a largura é menor que o monitor.
 align = "left"          # left | center | right
@@ -24,15 +28,17 @@ align = "left"          # left | center | right
 target = "focused"
 
 [appearance]
-font = "DejaVu Sans"
-font_size = 14.0
+# font: "Sans 9" no rasi. 9pt a 96dpi ≈ 12px (o tamanho aqui é em pixels).
+font = "Sans"
+font_size = 12.0
 font_weight = 400       # 100..900 (400 normal, 700 negrito)
 prompt = "Run: "
 # Texto de ajuda exibido no campo de entrada quando a busca está vazia.
 # placeholder = "Digite para buscar…"
 # Tema de ícones; vazio detecta pelo GTK e cai para Adwaita/hicolor.
 icon_theme = ""
-icon_size = 24
+# rofi usa ~1.2em no element-icon (1.2 x 12px ≈ 14px).
+icon_size = 14
 show_icons = true
 
 # ---------------------------------------------------------------------------
@@ -40,47 +46,49 @@ show_icons = true
 # ---------------------------------------------------------------------------
 [style]
 # Tema pronto (veja `i3-launcher --themes`). Cores definidas explicitamente
-# nesta seção vencem o tema. Deixe "" para usar apenas os valores abaixo.
-theme = "catppuccin-mocha"
+# nesta seção vencem o tema. Vazio = usar o padrão do dmenu.rasi (abaixo).
+theme = ""
 
-# Cores do tema em uso, listadas para referência. Descomente e altere qualquer
-# uma para sobrescrever apenas aquele detalhe do tema.
-# bg = "#1e1e2e"           # fundo da strip
-# fg = "#cdd6f4"           # texto dos itens
-# prompt_fg = "#f9e2af"    # texto do prompt
-# input_fg = "#cdd6f4"     # texto digitado
-# cursor = "#f5e0dc"       # cursor de texto
-# placeholder_fg = "#6c7086"
-# selection_bg = "#89b4fa" # fundo do item selecionado
-# selection_fg = "#1e1e2e" # texto do item selecionado
-# scroll_fg = "#6c7086"    # setas < e >
-# highlight_fg = "#fab387" # caracteres que casaram com a busca
+# Cores do padrão, listadas para referência. Descomente e altere qualquer uma
+# para sobrescrever apenas aquele detalhe.
+# bg = "#dedede"           # fundo da strip
+# fg = "#333333"           # texto dos itens
+# prompt_fg = "#333333"    # texto do prompt
+# input_fg = "#333333"     # texto digitado
+# cursor = "#333333"       # cursor de texto
+# placeholder_fg = "#333333"
+# selection_bg = "#c5c5c5" # fundo do item selecionado
+# selection_fg = "#000000" # texto do item selecionado
+# scroll_fg = "#333333"    # setas < e >
+# O rasi não destaca os caracteres casados; descomente para habilitar.
+# highlight_fg = "#ff8c00"
 
 # Geometria.
-padding = 8.0            # margem interna da strip
-gap = 8.0                # espaço entre ícone/texto, prompt/input etc.
-item_gap = 4.0           # espaço entre células de itens
-item_padding = 8.0       # padding interno de cada célula
-# Largura do campo de busca: px ou "%" da largura da strip. Quanto menor,
-# mais itens aparecem à direita.
-search_width = "22%"
+padding = 2.0            # margem interna da strip (window padding: 2px)
+gap = 0.0                # espaço entre ícone/texto, prompt/input etc.
+item_gap = 0.0           # espaço entre células (listview spacing: 0px)
+item_padding = 10.0      # padding horizontal da célula (element: 0px 10px)
+# Largura do campo de busca (entry: width 10em ≈ 120px).
+search_width = 120
 cursor_width = 1.5       # largura do cursor de texto
 icon_radius = 0.0        # raio do ícone-placeholder (0 = quadrado)
 
-# Destaque do item selecionado (0 = cantos retos).
+# Destaque do item selecionado (element selected):
+# fundo #C5C5C5, texto preto, borda de 1px laranja, cantos retos.
 selection_radius = 0.0
-selection_border_width = 0.0
-selection_border = "#45475a"
+selection_border_width = 1.0
+selection_border = "#ff8c00"
 
-# Caixa do campo de entrada. Sem `input_bg` e com borda 0, não é desenhada.
+# Caixa do campo de entrada. Sem `input_bg` e com borda 0, não é desenhada
+# (o rasi não define uma caixa para o entry).
 # input_bg = "#00000033"
 input_radius = 0.0
 input_border_width = 0.0
-input_border = "#89b4fa"
+input_border = "#c5c5c5"
 
-# Borda interna ao redor de toda a strip.
+# Borda interna ao redor de toda a strip (o rasi não usa borda na janela).
 panel_border_width = 0.0
-panel_border = "#11111b"
+panel_border = "#c5c5c5"
 
 [behavior]
 # prefix | substring | fuzzy

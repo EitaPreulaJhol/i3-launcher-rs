@@ -170,27 +170,32 @@ align = "left"      # left | center | right
 target = "focused"  # focused | primary | pointer | 0 | "HDMI-A-0"
 
 [appearance]
-font = "DejaVu Sans"
-font_size = 14.0
+font = "Sans"       # dmenu.rasi: "Sans 9" (9pt ≈ 12px)
+font_size = 12.0
 font_weight = 400   # 100..900
 prompt = "Run: "
 icon_theme = ""     # vazio = detecta (gtk settings / hicolor)
-icon_size = 24
+icon_size = 14      # ~1.2em, como o element-icon do rofi
 show_icons = true
 
 [style]
-theme = "catppuccin-mocha"  # --themes lista os 14 temas
-bg = "#1e1e2e"              # cores explícitas vencem o tema
-fg = "#cdd6f4"
-selection_bg = "#89b4fa"
-selection_fg = "#1e1e2e"
-highlight_fg = "#fab387"    # caracteres casados
-padding = 8.0
-item_padding = 8.0
-search_width = "22%"       # largura do campo de busca
-selection_radius = 0.0      # 0 = cantos retos (padrão)
-selection_border_width = 0.0
-input_bg = "#00000033"      # opcional: caixa do campo de entrada
+# Padrão = original_source/dmenu.rasi (barra clara do i3/polybar).
+# theme = "" usa as cores abaixo; --themes lista os 14 temas alternativos.
+theme = ""
+bg = "#dedede"
+fg = "#333333"
+selection_bg = "#c5c5c5"
+selection_fg = "#000000"
+selection_border = "#ff8c00"
+highlight_fg = ""          # opcional; o rasi não destaca matches
+padding = 2.0              # window { padding: 2px; }
+gap = 0.0
+item_gap = 0.0             # listview { spacing: 0px; }
+item_padding = 10.0        # element { padding: 0px 10px; }
+search_width = 120         # entry { width: 10em; }
+selection_radius = 0.0
+selection_border_width = 1.0
+input_bg = ""              # sem caixa (entry herda o fundo)
 input_radius = 0.0
 panel_border_width = 0.0
 
@@ -209,6 +214,11 @@ Flags CLI sobrescrevem o config: `-p/--prompt`, `-b/--bottom`, `-e/--edge`,
 Temas são aplicados preenchendo apenas as chaves de cor ausentes no TOML, então
 uma cor escrita pelo usuário sempre vence a paleta; `--theme` substitui o tema
 do arquivo e depois o mesmo merge acontece.
+
+O estilo padrão (sem config) é a tradução do `original_source/dmenu.rasi`:
+`background #DEDEDE`, `text #333333`, seleção `#C5C5C5` com texto `#000000` e
+borda de 1px `#FF8C00`, cantos retos, `window padding 2px`,
+`element padding 0px 10px`, `height 20px`, `entry 10em` e `font Sans 9`.
 
 ## 9. Milestones
 

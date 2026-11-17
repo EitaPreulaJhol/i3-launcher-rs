@@ -73,7 +73,8 @@ macro_rules! palette {
     };
 }
 
-/// All available themes. The first one mirrors the built-in defaults.
+/// All available themes. The built-in default style is separate and follows
+/// `original_source/dmenu.rasi` (light polybar/i3 palette).
 pub const PALETTES: &[Palette] = &[
     palette!(
         "catppuccin-mocha",
@@ -342,12 +343,13 @@ mod tests {
     }
 
     #[test]
-    fn default_style_matches_first_palette() {
-        // Keep the built-in defaults in sync with catppuccin-mocha.
-        let defaults = crate::config::Style::default();
-        let mocha = find("catppuccin-mocha").unwrap();
-        assert_eq!(defaults.bg.to_string(), mocha.bg);
-        assert_eq!(defaults.selection_bg.to_string(), mocha.selection_bg);
-        assert_eq!(defaults.highlight_fg.to_string(), mocha.highlight_fg);
+    fn themes_keep_match_highlighting() {
+        // The default style disables highlighting, but themes provide a color.
+        for palette in PALETTES {
+            palette
+                .highlight_fg
+                .parse::<Color>()
+                .unwrap_or_else(|err| panic!("tema {}: {err}", palette.name));
+        }
     }
 }
