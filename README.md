@@ -97,12 +97,12 @@ Tudo que é visual fica em `[style]`: cores, espaçamentos, raios e bordas.
 theme = "gruvbox-dark"        # vazio = usar só as cores abaixo
 highlight_fg = "#fe8019"      # caracteres que casaram com a busca
 
-selection_radius = 10.0
+selection_radius = 0.0        # 0 = cantos retos (padrão)
 selection_border_width = 2.0
 selection_border = "#fabd2f"
 
-input_bg = "#00000055"        # caixa arredondada atrás do campo de entrada
-input_radius = 10.0
+input_bg = "#00000055"        # caixa atrás do campo de entrada
+input_radius = 0.0            # aumente para cantos arredondados
 input_border_width = 1.5
 input_border = "#fabd2f"
 
@@ -112,7 +112,7 @@ panel_border = "#504945"
 padding = 8.0                 # margem interna
 item_padding = 10.0           # padding da célula
 cursor_width = 2.0
-icon_radius = 6.0             # ícone-placeholder de entradas sem ícone
+icon_radius = 0.0             # ícone-placeholder (0 = quadrado)
 
 [appearance]
 font_weight = 600             # 100..900

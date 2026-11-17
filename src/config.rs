@@ -465,12 +465,12 @@ impl Default for Style {
             panel_border_width: 0.0,
             selection_border: Color::rgb(0x45, 0x47, 0x5a),
             selection_border_width: 0.0,
-            selection_radius: 6.0,
+            selection_radius: 0.0,
             input_bg: None,
             input_border: Color::rgb(0x89, 0xb4, 0xfa),
             input_border_width: 0.0,
-            input_radius: 6.0,
-            icon_radius: 5.0,
+            input_radius: 0.0,
+            icon_radius: 0.0,
             cursor_width: 1.5,
             padding: 8.0,
             gap: 8.0,
@@ -707,6 +707,14 @@ mod tests {
         let message = format!("{err:#}");
         assert!(message.contains("nao-existe"));
         assert!(message.contains("catppuccin-mocha"));
+    }
+
+    #[test]
+    fn style_defaults_are_square() {
+        let style = Style::default();
+        assert_eq!(style.selection_radius, 0.0);
+        assert_eq!(style.input_radius, 0.0);
+        assert_eq!(style.icon_radius, 0.0);
     }
 
     #[test]

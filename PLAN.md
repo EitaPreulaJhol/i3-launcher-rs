@@ -186,10 +186,10 @@ selection_fg = "#1e1e2e"
 highlight_fg = "#fab387"    # caracteres casados
 padding = 8.0
 item_padding = 8.0
-selection_radius = 6.0
+selection_radius = 0.0      # 0 = cantos retos (padrão)
 selection_border_width = 0.0
 input_bg = "#00000033"      # opcional: caixa do campo de entrada
-input_radius = 6.0
+input_radius = 0.0
 panel_border_width = 0.0
 
 [behavior]

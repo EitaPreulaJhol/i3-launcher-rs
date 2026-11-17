@@ -62,16 +62,16 @@ gap = 8.0                # espaço entre ícone/texto, prompt/input etc.
 item_gap = 4.0           # espaço entre células de itens
 item_padding = 8.0       # padding interno de cada célula
 cursor_width = 1.5       # largura do cursor de texto
-icon_radius = 5.0        # raio do ícone-placeholder (entradas sem ícone)
+icon_radius = 0.0        # raio do ícone-placeholder (0 = quadrado)
 
-# Destaque do item selecionado.
-selection_radius = 6.0
+# Destaque do item selecionado (0 = cantos retos).
+selection_radius = 0.0
 selection_border_width = 0.0
 selection_border = "#45475a"
 
 # Caixa do campo de entrada. Sem `input_bg` e com borda 0, não é desenhada.
 # input_bg = "#00000033"
-input_radius = 6.0
+input_radius = 0.0
 input_border_width = 0.0
 input_border = "#89b4fa"
 
