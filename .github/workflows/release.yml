@@ -34,6 +34,7 @@ jobs:
           mkdir -p dist
           install -Dm755 target/release/i3-launcher dist/i3-launcher
           cp README.md LICENSE config.example.toml dist/
+          cp -r docs dist/
           tar -C dist -czf "$archive" .
           sha256sum "$archive" > "$archive.sha256"
 
