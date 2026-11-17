@@ -165,7 +165,12 @@ fn run() -> Result<i32> {
                 redraw = application.handle_scroll(up);
             }
             Some(InputEvent::Expose) => redraw = true,
-            Some(InputEvent::FocusIn) => redraw = true,
+            Some(InputEvent::FocusIn) => {
+                // A keybinding/window-manager focus transition can displace
+                // the grab. Reassert it before waiting for the next keypress.
+                x11.regrab();
+                redraw = true;
+            }
             Some(InputEvent::Quit) => return Ok(1),
             None => {}
         }

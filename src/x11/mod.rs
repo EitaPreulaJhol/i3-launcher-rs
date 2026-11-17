@@ -61,8 +61,14 @@ impl X11 {
         let keymap = Keymap::load(&conn)?;
 
         let instance_atom = intern_atom(&conn, b"_I3_LAUNCHER_RUNNING")?;
-        if single_instance && instance_owner(&conn, instance_atom)? != x11rb::NONE {
-            return Ok(None);
+        if single_instance {
+            let owner = instance_owner(&conn, instance_atom)?;
+            if owner != x11rb::NONE {
+                // Treat another invocation as a request to bring the existing
+                // launcher back, rather than silently doing nothing.
+                reactivate_instance(&conn, owner);
+                return Ok(None);
+            }
         }
 
         // Remember the real window that was focused so it can be restored on
@@ -115,6 +121,11 @@ impl X11 {
         if single_instance && !claim_instance_selection(&conn, instance_atom, win)? {
             // Another instance won the atomic claim; this window was never
             // mapped or focused, and dropping `conn` destroys it.
+            if let Ok(owner) = instance_owner(&conn, instance_atom) {
+                if owner != x11rb::NONE {
+                    reactivate_instance(&conn, owner);
+                }
+            }
             return Ok(None);
         }
 
@@ -333,6 +344,18 @@ pub fn intern_atom<C: Connection>(conn: &C, name: &[u8]) -> Result<u32> {
 /// Current owner of `atom`, or [`x11rb::NONE`] when the selection is free.
 fn instance_owner<C: Connection>(conn: &C, atom: u32) -> Result<Window> {
     Ok(conn.get_selection_owner(atom)?.reply()?.owner)
+}
+
+/// Raise and focus the current instance. Its FocusIn handler will reacquire
+/// the keyboard grab on the owning connection.
+fn reactivate_instance(conn: &RustConnection, window: Window) {
+    let _ = conn.configure_window(
+        window,
+        &x11rb::protocol::xproto::ConfigureWindowAux::new()
+            .stack_mode(x11rb::protocol::xproto::StackMode::ABOVE),
+    );
+    let _ = conn.set_input_focus(InputFocus::POINTER_ROOT, window, CURRENT_TIME);
+    let _ = conn.flush();
 }
 
 /// Atomically claim the instance selection, so two simultaneous launches
