@@ -186,7 +186,8 @@ e integração com scripts.
 ```
 
 - **Janela**: `x11rb`, `override-redirect`, `PutImage` em um pixmap de
-  double-buffer; grab exclusivo do teclado (o mouse continua livre).
+  double-buffer; grab exclusivo do teclado (o mouse continua livre) e foco
+  devolvido à janela que estava ativa ao fechar.
 - **Texto**: `cosmic-text` (shaping, fallback de fontes) com rasterização de
   glifos e blend manual no pixmap.
 - **Ícones**: resolução XDG + cache por `(nome, tamanho)`; PNG com Lanczos, SVG
