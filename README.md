@@ -161,7 +161,6 @@ i3-launcher --theme catppuccin-latte
 | `Home` `End` / `Ctrl+A` `Ctrl+E` | início/fim do texto (repetir: primeiro/último item) |
 | `Backspace` `Delete` / `Ctrl+H` `Ctrl+D` | apaga caractere |
 | `Ctrl+W` `Ctrl+U` `Ctrl+K` | apaga palavra / até o início / até o fim |
-| `Tab` | completa com o item selecionado |
 | clique / scroll | seleciona / navega |
 
 ### Modo dmenu
