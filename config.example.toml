@@ -61,6 +61,9 @@ padding = 8.0            # margem interna da strip
 gap = 8.0                # espaço entre ícone/texto, prompt/input etc.
 item_gap = 4.0           # espaço entre células de itens
 item_padding = 8.0       # padding interno de cada célula
+# Largura do campo de busca: px ou "%" da largura da strip. Quanto menor,
+# mais itens aparecem à direita.
+search_width = "22%"
 cursor_width = 1.5       # largura do cursor de texto
 icon_radius = 0.0        # raio do ícone-placeholder (0 = quadrado)
 

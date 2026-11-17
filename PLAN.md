@@ -140,7 +140,8 @@ visíveis, e o resultado já sai no tamanho final.
 | `Esc`                   | sai (código 1) |
 | `Enter`                 | executa o item selecionado |
 | `↑` / `↓`, `Ctrl+p/n`   | move seleção |
-| `←` / `→`               | move cursor de texto |
+| `←` / `→`               | move o item ativo |
+| `Ctrl+←` / `Ctrl+→`     | move o cursor de texto por palavra |
 | `Home` / `End`          | início/fim do texto; repetir vai ao primeiro/último item |
 | `Backspace` / `Delete`  | apaga antes/depois do cursor |
 | `Ctrl+W` / `Ctrl+U`     | apaga palavra / linha |
@@ -186,6 +187,7 @@ selection_fg = "#1e1e2e"
 highlight_fg = "#fab387"    # caracteres casados
 padding = 8.0
 item_padding = 8.0
+search_width = "22%"       # largura do campo de busca
 selection_radius = 0.0      # 0 = cantos retos (padrão)
 selection_border_width = 0.0
 input_bg = "#00000033"      # opcional: caixa do campo de entrada

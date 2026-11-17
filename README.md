@@ -111,6 +111,7 @@ panel_border = "#504945"
 
 padding = 8.0                 # margem interna
 item_padding = 10.0           # padding da célula
+search_width = "22%"          # largura do campo de busca (px ou %)
 cursor_width = 2.0
 icon_radius = 0.0             # ícone-placeholder (0 = quadrado)
 
@@ -136,8 +137,10 @@ i3-launcher --theme catppuccin-latte
 | `Esc` | fecha (código 1) |
 | `↑` `↓` / `Ctrl+P` `Ctrl+N` | move a seleção |
 | `PgUp` `PgDn` | salta 10 itens |
-| `←` `→` / `Ctrl+B` `Ctrl+F` | move o cursor |
-| `Alt+B` `Alt+F` | move por palavra |
+| `←` `→` | move o item ativo |
+| `Ctrl+←` `Ctrl+→` | move o cursor de texto por palavra |
+| `Ctrl+B` `Ctrl+F` | move o cursor de texto por caractere |
+| `Alt+B` `Alt+F` | move o cursor de texto por palavra |
 | `Home` `End` / `Ctrl+A` `Ctrl+E` | início/fim do texto (repetir: primeiro/último item) |
 | `Backspace` `Delete` / `Ctrl+H` `Ctrl+D` | apaga caractere |
 | `Ctrl+W` `Ctrl+U` `Ctrl+K` | apaga palavra / até o início / até o fim |
