@@ -106,7 +106,27 @@ fn run() -> Result<i32> {
         )
     });
 
-    let mut application = App::new(items, &cfg.behavior);
+    let mut application = if options.dmenu {
+        App::new(items, &cfg.behavior)
+    } else {
+        App::with_path_loader(
+            items,
+            || {
+                let start = Instant::now();
+                let paths = app::path_items();
+                debug(|| {
+                    format!(
+                        "comandos do PATH: {} em {} ms",
+                        paths.len(),
+                        start.elapsed().as_millis()
+                    )
+                });
+                paths
+            },
+            &cfg.behavior,
+        )
+    };
+
     let first_frame = Instant::now();
     application.relayout(&mut painter, &cfg, width as f32, height as f32);
     painter.paint(&mut surface, &application, &cfg);
@@ -164,6 +184,17 @@ fn handle_outcome(
         }
         Outcome::Shell(line) => {
             launch::spawn_shell(&line, &cfg.behavior.shell)?;
+            Ok(0)
+        }
+        Outcome::Command(name) => {
+            if cfg.behavior.print_selection {
+                println!("{name}");
+                return Ok(0);
+            }
+            launch::spawn(&launch::LaunchCommand {
+                argv: vec![name],
+                cwd: None,
+            })?;
             Ok(0)
         }
         Outcome::LaunchApp(index) => {

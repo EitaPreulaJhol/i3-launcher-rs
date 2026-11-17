@@ -84,6 +84,11 @@ OPÇÕES:
     -h, --help                 Mostra esta ajuda
     -v, --version              Mostra a versão
 
+TECLAS:
+    Tab                        Alterna apps (.desktop) e comandos do $PATH
+    Enter                      Executa o item selecionado
+    Esc                        Fecha
+
 CORES: #rgb, #rrggbb ou #rrggbbaa.
 
 CONFIG: $I3L_CONFIG, $XDG_CONFIG_HOME/i3-launcher/config.toml,
