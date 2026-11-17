@@ -10,7 +10,7 @@ rendering.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ Run: firef▏   [🦊 Firefox]  [🌐 Chromium]  [📝 Gedit]  [⌨ Alacritty]      › │
+│ Run: firef▏   [🦊 Firefox]  [🌐 Chromium]  [📝 Gedit]  [⌨ Alacritty]   › │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -117,8 +117,7 @@ keys.
 ## Style and themes
 
 Everything visual lives in `[style]`. The default (without a config)
-reproduces `original_source/dmenu.rasi`, the same scheme as the i3/polybar
-bar:
+reproduces something like my custom`dmenu.rasi`:
 
 ```toml
 [appearance]
