@@ -1,0 +1,69 @@
+# i3-launcher-rs — configuração de exemplo
+#
+# Copie para ~/.config/i3-launcher/config.toml (ou passe --config <arquivo>).
+# Todos os campos são opcionais; os valores abaixo são os padrões.
+
+[bar]
+# Borda do monitor onde a strip aparece: "top" ou "bottom".
+edge = "top"
+# Altura da strip em pixels.
+height = 44
+# Margem horizontal externa (aplicada dos dois lados).
+margin = 0
+# Distância até a borda. Use, por exemplo, 24 para ficar logo abaixo do i3bar.
+offset = 0
+# Largura: pixels ou porcentagem ("80%"). Sem esta chave ocupa a largura toda
+# menos as margens.
+# width = "100%"
+# Alinhamento horizontal quando a largura é menor que o monitor.
+align = "left"          # left | center | right
+
+[monitor]
+# Monitor onde a strip aparece.
+# focused (janela ativa) | primary | pointer | índice do RandR | nome do conector
+target = "focused"
+
+[appearance]
+font = "DejaVu Sans"
+font_size = 14.0
+prompt = "Run: "
+# Texto de ajuda exibido no campo de entrada quando a busca está vazia.
+# placeholder = "Digite para buscar…"
+# Tema de ícones; vazio detecta pelo GTK e cai para Adwaita/hicolor.
+icon_theme = ""
+icon_size = 24
+show_icons = true
+padding = 8.0           # margem interna da strip
+gap = 8.0               # espaço entre ícone e texto, e entre prompt e input
+item_gap = 4.0          # espaço entre células de itens
+item_padding = 8.0      # padding interno de cada célula
+sel_radius = 6.0        # raio dos cantos do destaque de seleção
+
+# Cores no formato #rgb, #rrggbb ou #rrggbbaa.
+bg = "#1e1e2e"          # fundo da strip
+fg = "#cdd6f4"          # texto dos itens
+prompt_fg = "#f9e2af"   # texto do prompt
+input_fg = "#cdd6f4"    # texto digitado
+cursor = "#f5e0dc"      # cursor de texto
+placeholder_fg = "#6c7086"
+sel_bg = "#89b4fa"      # fundo do item selecionado
+sel_fg = "#1e1e2e"      # texto do item selecionado
+scroll_fg = "#6c7086"   # setas < e >
+
+[behavior]
+# prefix | substring | fuzzy
+match_mode = "fuzzy"
+case_sensitive = false
+# Ordena por score. false mantém a ordem de leitura (como o dmenu).
+sort = true
+# Terminal usado por entradas com Terminal=true (ex.: "alacritty -e").
+# Vazio usa $TERMINAL e depois procura um terminal conhecido.
+terminal = ""
+# Imprime a seleção em vez de executar (útil para scripts/testes).
+print_selection = false
+# Shell usado por `--dmenu --exec`.
+shell = "/bin/sh"
+# Ícone genérico quando o arquivo .desktop não tem ícone resolvível.
+fallback_icon = "application-x-executable"
+# Limite de resultados (0 = sem limite).
+max_results = 0
