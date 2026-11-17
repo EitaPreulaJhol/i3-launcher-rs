@@ -1,5 +1,8 @@
 # i3-launcher-rs
 
+[![CI](https://github.com/EitaPreulaJhol/i3-launcher-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/EitaPreulaJhol/i3-launcher-rs/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 `dmenu`-style launcher for i3: a **horizontal strip** (at the top or bottom of
 the monitor, configurable) with **application icons**, incremental search and
 execution of `.desktop` entries — no GUI toolkit, just X11 + software
@@ -40,12 +43,11 @@ rendering.
 
 ## Installation
 
-Build dependencies: stable Rust and the usual X11/XCB development libraries
-(on Debian/Ubuntu: `libxcb1-dev libxcb-randr0-dev libxcb-xinerama0-dev`).
-`cosmic-text` uses fontconfig.
+Build dependency: Rust stable (1.89 or newer). All dependencies are pure
+Rust, so no X11/XCB or fontconfig development packages are needed.
 
 ```bash
-git clone <this-repo> i3-launcher-rs
+git clone https://github.com/EitaPreulaJhol/i3-launcher-rs.git
 cd i3-launcher-rs
 
 # option 1: install into ~/.local/bin (builds first)
@@ -65,7 +67,8 @@ cargo build --release                     # binary at target/release/i3-launcher
 
 `./install.sh --no-build` installs the already-built binary. The `PREFIX`
 (default `~/.local`), `BINDIR` (default `$PREFIX/bin`) and `DESTDIR` (default
-empty) variables control the destination.
+empty) variables control the destination. Prebuilt x86_64 Linux binaries are
+attached to [releases](https://github.com/EitaPreulaJhol/i3-launcher-rs/releases).
 
 In `~/.config/i3/config`:
 
@@ -257,6 +260,16 @@ I3L_DEBUG=1 cargo run --release             # monitor/item/theme log
   radius.
 - SVG icons with `<text>` do not render text (resvg without the `text`
   feature).
+
+## Contributing
+
+Issues and pull requests are welcome. Before opening a PR, run:
+
+```bash
+cargo fmt
+cargo clippy --locked --all-targets -- -D warnings
+cargo test --locked --all-targets
+```
 
 ## License
 

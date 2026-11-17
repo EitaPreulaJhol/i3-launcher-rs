@@ -1,2 +1,10 @@
 /target
 **/*.rs.bk
+dist/
+
+# Editors and OS files
+*.swp
+*.swo
+.DS_Store
+.idea/
+.vscode/
