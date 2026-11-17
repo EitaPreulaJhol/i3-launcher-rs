@@ -434,6 +434,8 @@ pub struct Style {
 
     /// Corner radius used by the placeholder icon of entries without an icon.
     pub icon_radius: f32,
+    /// Width of the search field. Accepts pixels or a percentage of the bar.
+    pub search_width: Dimension,
     /// Width of the text cursor.
     pub cursor_width: f32,
 
@@ -471,6 +473,7 @@ impl Default for Style {
             input_border_width: 0.0,
             input_radius: 0.0,
             icon_radius: 0.0,
+            search_width: Dimension::Percent(22.0),
             cursor_width: 1.5,
             padding: 8.0,
             gap: 8.0,
@@ -707,6 +710,11 @@ mod tests {
         let message = format!("{err:#}");
         assert!(message.contains("nao-existe"));
         assert!(message.contains("catppuccin-mocha"));
+    }
+
+    #[test]
+    fn default_search_width_is_compact() {
+        assert_eq!(Style::default().search_width, Dimension::Percent(22.0));
     }
 
     #[test]

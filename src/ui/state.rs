@@ -65,7 +65,8 @@ impl App {
 
         let available = (width - 2.0 * padding).max(1.0);
         let max_input = (available - prompt_width - prompt_gap - gap - 48.0).max(60.0);
-        let input_width = (width * 0.33).clamp(60.0, max_input);
+        let requested_input = style.search_width.resolve(width as u32) as f32;
+        let input_width = requested_input.clamp(60.0, max_input);
 
         let mut list_x = padding + prompt_width + prompt_gap + input_width + gap;
         if list_x > width - 48.0 {
@@ -185,6 +186,19 @@ impl App {
         }
 
         if mods.ctrl {
+            // Lateral arrows navigate the list; Ctrl+arrows move the text
+            // cursor by word (plain arrows are reserved for item navigation).
+            match sym {
+                Keysym::Left | Keysym::KP_Left => {
+                    self.move_cursor_word(-1);
+                    return true;
+                }
+                Keysym::Right | Keysym::KP_Right => {
+                    self.move_cursor_word(1);
+                    return true;
+                }
+                _ => {}
+            }
             if let Some(c) = sym.key_char().map(|c| c.to_ascii_lowercase()) {
                 match c {
                     'a' => {
@@ -249,14 +263,8 @@ impl App {
             }
             Keysym::BackSpace => self.backspace(behavior),
             Keysym::Delete | Keysym::KP_Delete => self.delete_forward(behavior),
-            Keysym::Left | Keysym::KP_Left => {
-                self.move_cursor(-1);
-                true
-            }
-            Keysym::Right | Keysym::KP_Right => {
-                self.move_cursor(1);
-                true
-            }
+            Keysym::Left | Keysym::KP_Left => self.move_selection(-1),
+            Keysym::Right | Keysym::KP_Right => self.move_selection(1),
             Keysym::Home | Keysym::KP_Home => {
                 // Like dmenu: once the cursor is at the start, jump to the
                 // first item.
@@ -600,6 +608,34 @@ mod tests {
         let mut app = self::app();
         app.handle_key(Keysym::Escape, Mods::default(), &Behavior::default());
         assert_eq!(app.outcome, Some(Outcome::Quit(1)));
+    }
+
+    #[test]
+    fn lateral_arrows_move_selection_and_ctrl_moves_cursor() {
+        let mut app = self::app();
+
+        // Empty query: arrows navigate the list.
+        app.handle_key(Keysym::Right, Mods::default(), &Behavior::default());
+        assert_eq!(app.sel, 1);
+        app.handle_key(Keysym::Left, Mods::default(), &Behavior::default());
+        assert_eq!(app.sel, 0);
+
+        // With text, arrows still navigate items; the cursor does not move.
+        type_text(&mut app, "fi");
+        assert_eq!(app.cursor, 2);
+        app.handle_key(Keysym::Right, Mods::default(), &Behavior::default());
+        assert_eq!(app.sel, 1);
+        assert_eq!(app.cursor, 2);
+
+        // Ctrl+Left moves the text cursor by word.
+        let ctrl = Mods {
+            ctrl: true,
+            ..Default::default()
+        };
+        app.handle_key(Keysym::Left, ctrl, &Behavior::default());
+        assert_eq!(app.cursor, 0);
+        app.handle_key(Keysym::Right, ctrl, &Behavior::default());
+        assert_eq!(app.cursor, 2);
     }
 
     #[test]
