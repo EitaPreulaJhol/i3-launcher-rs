@@ -1,8 +1,5 @@
 # i3-launcher-rs
 
-[![CI](https://github.com/EitaPreulaJhol/i3-launcher-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/EitaPreulaJhol/i3-launcher-rs/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
 `dmenu`-style launcher for i3: a **horizontal strip** with **application icons**,
 incremental search and execution of `.desktop` entries. It talks to X11
 directly and renders in software — no GTK, Qt or other GUI toolkit.
