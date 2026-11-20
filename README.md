@@ -7,11 +7,7 @@
 incremental search and execution of `.desktop` entries. It talks to X11
 directly and renders in software — no GTK, Qt or other GUI toolkit.
 
-```text
-┌────────────────────────────────────────────────────────────────────────────┐
-│ Run: firef▏   [🦊 Firefox]  [🌐 Chromium]  [📝 Gedit]  [⌨ Alacritty]    › │
-└────────────────────────────────────────────────────────────────────────────┘
-```
+![i3-launcher strip](docs/screenshot.png)
 
 ## Features
 
@@ -56,7 +52,6 @@ Other install methods, prebuilt binaries and the i3bar note are in
 | [Configuration](docs/configuration.md) | TOML reference, themes, colors and style options |
 | [Architecture](docs/architecture.md) | Modules, data flow, rendering, geometry and design decisions |
 | [Development](docs/development.md) | Build, tests, debug tools, contributing and releases |
-| [Roadmap](docs/roadmap.md) | Scope, milestones, known limitations and next steps |
 
 The commented example config is [`config.example.toml`](config.example.toml).
 
