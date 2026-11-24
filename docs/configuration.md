@@ -8,9 +8,9 @@ see [`config.example.toml`](../config.example.toml) for a commented version.
 The first existing file wins:
 
 1. `--config <FILE>` (must exist; an error is reported otherwise)
-2. `$I3L_CONFIG`
-3. `$XDG_CONFIG_HOME/i3-launcher/config.toml`
-4. `~/.config/i3-launcher/config.toml`
+2. `$LAUNCHER_CONFIG`
+3. `$XDG_CONFIG_HOME/launcher-rs/config.toml`
+4. `~/.config/launcher-rs/config.toml`
 
 Unknown keys are rejected (`deny_unknown_fields`), so typos produce a clear
 error instead of being silently ignored.
@@ -62,7 +62,7 @@ max_results = 0
 | --- | --- | --- | --- |
 | `edge` | `top` \| `bottom` | `top` | Monitor edge where the strip appears |
 | `height` | pixels | `20` | Strip height |
-| `offset` | pixels | `0` | Distance from the edge (use the i3bar height to sit below it) |
+| `offset` | pixels | `0` | Distance from the edge (use the status bar height to sit below it) |
 | `margin` | pixels | `0` | Outer horizontal margin, applied on both sides |
 | `width` | pixels \| `"80%"` | monitor width minus margins | Strip width |
 | `align` | `left` \| `center` \| `right` | `left` | Alignment when the width is narrower than the monitor |
@@ -154,8 +154,8 @@ The built-in themes are:
 and `adwaita-dark`.
 
 ```bash
-i3-launcher --themes
-i3-launcher --theme catppuccin-latte
+launcher-rs --themes
+launcher-rs --theme catppuccin-latte
 ```
 
 The default (`theme = ""`) is the translation of `dmenu.rasi`: background

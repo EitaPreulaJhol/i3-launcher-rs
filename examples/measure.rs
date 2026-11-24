@@ -1,6 +1,6 @@
 //! Debug helper: print measured text widths (requires system fonts).
-use i3_launcher::config::Config;
-use i3_launcher::ui::paint::Painter;
+use launcher_rs::config::Config;
+use launcher_rs::ui::paint::Painter;
 
 fn main() {
     let cfg = Config::default();

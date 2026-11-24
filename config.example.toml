@@ -1,8 +1,8 @@
-# i3-launcher-rs — example configuration
+# launcher-rs — example configuration
 #
-# Copy to ~/.config/i3-launcher/config.toml (or pass --config <file>).
+# Copy to ~/.config/launcher-rs/config.toml (or pass --config <file>).
 # Every field is optional; the values below are the defaults, based on
-# `original_source/dmenu.rasi` (the same visual scheme as the i3/polybar bar).
+# `original_source/dmenu.rasi` (the same visual scheme as the polybar status bar).
 #
 #   background #DEDEDE · text #333333 · selection #C5C5C5 (black text)
 #   1px selection border #FF8C00 · square corners · 20px height
@@ -14,7 +14,7 @@ edge = "top"
 height = 20
 # Outer horizontal margin (applied on both sides).
 margin = 0
-# Distance from the edge. Use, for example, 24 to sit just below i3bar.
+# Distance from the edge. Use, for example, 24 to sit just below the status bar.
 offset = 0
 # Width: pixels or a percentage ("80%"). Without this key it takes the whole
 # width minus the margins (window { width: 100%; } in the rasi).
@@ -45,7 +45,7 @@ show_icons = true
 # Style: colors, spacing, radii and borders.
 # ---------------------------------------------------------------------------
 [style]
-# Ready-made theme (see `i3-launcher --themes`). Colors set explicitly in this
+# Ready-made theme (see `launcher-rs --themes`). Colors set explicitly in this
 # section win over the theme. Empty = use the dmenu.rasi default (below).
 theme = ""
 

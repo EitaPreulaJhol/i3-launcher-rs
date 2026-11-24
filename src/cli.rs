@@ -48,10 +48,10 @@ pub struct Options {
 }
 
 const HELP: &str = "\
-i3-launcher-rs - dmenu-style launcher with icons for i3
+launcher-rs - dmenu-style launcher with icons for X11 window managers
 
 USAGE:
-    i3-launcher [OPTIONS]
+    launcher-rs [OPTIONS]
 
 OPTIONS:
     -c, --config <FILE>        Path to the TOML config
@@ -91,8 +91,8 @@ KEYS:
 
 COLORS: #rgb, #rrggbb or #rrggbbaa.
 
-CONFIG: $I3L_CONFIG, $XDG_CONFIG_HOME/i3-launcher/config.toml,
-        ~/.config/i3-launcher/config.toml
+CONFIG: $LAUNCHER_CONFIG, $XDG_CONFIG_HOME/launcher-rs/config.toml,
+        ~/.config/launcher-rs/config.toml
 ";
 
 /// Parse CLI arguments (without the program name).

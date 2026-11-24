@@ -1,8 +1,8 @@
 //! Debug helper: dump layout geometry for the default config.
-use i3_launcher::app;
-use i3_launcher::config::Config;
-use i3_launcher::ui::paint::Painter;
-use i3_launcher::ui::state::App;
+use launcher_rs::app;
+use launcher_rs::config::Config;
+use launcher_rs::ui::paint::Painter;
+use launcher_rs::ui::state::App;
 
 fn main() {
     let cfg = Config::default();

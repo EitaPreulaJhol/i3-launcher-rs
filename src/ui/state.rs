@@ -198,7 +198,7 @@ impl App {
             .map(|cell| cell.index + 1 < len)
             .unwrap_or(false);
 
-        if std::env::var_os("I3L_DEBUG_LAYOUT").is_some() {
+        if std::env::var_os("LAUNCHER_DEBUG_LAYOUT").is_some() {
             let preview: Vec<String> = self
                 .filtered
                 .iter()

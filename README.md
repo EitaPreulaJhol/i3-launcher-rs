@@ -1,10 +1,11 @@
-# i3-launcher-rs
+# launcher-rs
 
-`dmenu`-style launcher for i3: a **horizontal strip** with **application icons**,
-incremental search and execution of `.desktop` entries. It talks to X11
-directly and renders in software — no GTK, Qt or other GUI toolkit.
+`dmenu`-style launcher for X11 window managers: a **horizontal strip** with
+**application icons**, incremental search and execution of `.desktop` entries.
+It talks to X11 directly and renders in software — no GTK, Qt or other GUI
+toolkit.
 
-![i3-launcher strip](docs/screenshot.png)
+![launcher-rs strip](docs/screenshot.png)
 
 ## Features
 
@@ -26,25 +27,23 @@ Requires Rust stable (1.89+) and an X11 session. All dependencies are pure Rust,
 so no X11/XCB or fontconfig development packages are needed.
 
 ```bash
-git clone https://github.com/EitaPreulaJhol/i3-launcher-rs.git
-cd i3-launcher-rs
+git clone https://github.com/EitaPreulaJhol/launcher-rs.git
+cd launcher-rs
 ./install.sh                 # builds and installs into ~/.local/bin
 ```
 
-Then bind it in `~/.config/i3/config`:
+Then bind `launcher-rs` to a key in your window manager (bspwm, awesome,
+openbox, dwm, …). Some examples are in
+[docs/installation.md](docs/installation.md#window-manager-setup).
 
-```
-bindsym $mod+d exec --no-startup-id i3-launcher
-```
-
-Other install methods, prebuilt binaries and the i3bar note are in
+Other install methods, prebuilt binaries and the status bar note are in
 [docs/installation.md](docs/installation.md).
 
 ## Documentation
 
 | Document | Contents |
 | --- | --- |
-| [Installation](docs/installation.md) | Requirements, `install.sh`, `cargo install`, i3 setup |
+| [Installation](docs/installation.md) | Requirements, `install.sh`, `cargo install`, window manager setup |
 | [Usage](docs/usage.md) | CLI flags, keybindings, `--dmenu`, `--print`, monitor targets |
 | [Configuration](docs/configuration.md) | TOML reference, themes, colors and style options |
 | [Architecture](docs/architecture.md) | Modules, data flow, rendering, geometry and design decisions |

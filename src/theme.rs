@@ -74,7 +74,7 @@ macro_rules! palette {
 }
 
 /// All available themes. The built-in default style is separate and follows
-/// `original_source/dmenu.rasi` (light polybar/i3 palette).
+/// `original_source/dmenu.rasi` (light status bar palette).
 pub const PALETTES: &[Palette] = &[
     palette!(
         "catppuccin-mocha",

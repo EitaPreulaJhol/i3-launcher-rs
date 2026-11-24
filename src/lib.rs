@@ -1,4 +1,4 @@
-//! i3-launcher-rs: a dmenu-style application launcher strip for i3.
+//! launcher-rs: a dmenu-style application launcher strip for X11 window managers.
 //!
 //! The crate is split so that everything except the X11 layer is testable
 //! without a display: `.desktop` parsing/scanning, icon theme resolution,

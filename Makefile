@@ -1,4 +1,4 @@
-# i3-launcher-rs — development shortcuts
+# launcher-rs — development shortcuts
 #
 #   make            # release build
 #   make install    # build and install into ~/.local/bin
@@ -26,7 +26,7 @@ install:
 	PREFIX="$(PREFIX)" BINDIR="$(BINDIR)" DESTDIR="$(DESTDIR)" CARGO="$(CARGO)" ./install.sh
 
 uninstall:
-	rm -f $(DESTDIR)$(BINDIR)/i3-launcher
+	rm -f $(DESTDIR)$(BINDIR)/launcher-rs
 
 test:
 	$(CARGO) test

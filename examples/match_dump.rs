@@ -1,7 +1,7 @@
 //! Debug helper: dump match scores for a query.
-use i3_launcher::app;
-use i3_launcher::config::Config;
-use i3_launcher::matching::{self, MatchOptions};
+use launcher_rs::app;
+use launcher_rs::config::Config;
+use launcher_rs::matching::{self, MatchOptions};
 
 fn main() {
     let query = std::env::args().nth(1).unwrap_or_else(|| "ala".into());

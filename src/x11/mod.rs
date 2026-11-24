@@ -48,7 +48,7 @@ impl X11 {
     /// Connect to `$DISPLAY`, pick the configured monitor and create the
     /// strip window (override-redirect + exclusive keyboard grab).
     ///
-    /// With `single_instance`, ownership of the `_I3_LAUNCHER_RUNNING`
+    /// With `single_instance`, ownership of the `_LAUNCHER_RS_RUNNING`
     /// selection is claimed for the display. `Ok(None)` means another
     /// launcher already owns it (the caller should exit quietly) and avoids
     /// stacked windows that could not grab the keyboard.
@@ -60,7 +60,7 @@ impl X11 {
         let depth = screen.root_depth;
         let keymap = Keymap::load(&conn)?;
 
-        let instance_atom = intern_atom(&conn, b"_I3_LAUNCHER_RUNNING")?;
+        let instance_atom = intern_atom(&conn, b"_LAUNCHER_RS_RUNNING")?;
         if single_instance {
             let owner = instance_owner(&conn, instance_atom)?;
             if owner != x11rb::NONE {
@@ -105,7 +105,7 @@ impl X11 {
             WindowClass::INPUT_OUTPUT,
             0,
             &CreateWindowAux::new()
-                // Never managed by i3: no borders, no gaps, no tiling.
+                // Never managed by the WM: no borders, no gaps, no tiling.
                 .override_redirect(1)
                 .background_pixel(background_pixel)
                 .border_pixel(background_pixel)
@@ -135,7 +135,7 @@ impl X11 {
             win,
             AtomEnum::WM_CLASS,
             AtomEnum::STRING,
-            b"i3-launcher\0I3-launcher\0",
+            b"launcher-rs\0Launcher-rs\0",
         )?;
         let net_wm_name = intern_atom(&conn, b"_NET_WM_NAME")?;
         let utf8_string = intern_atom(&conn, b"UTF8_STRING")?;
@@ -144,7 +144,7 @@ impl X11 {
             win,
             net_wm_name,
             utf8_string,
-            b"i3-launcher",
+            b"launcher-rs",
         )?;
 
         conn.map_window(win)?;
@@ -161,7 +161,7 @@ impl X11 {
         if let Ok(reply) = grab.reply() {
             if reply.status != GrabStatus::SUCCESS {
                 eprintln!(
-                    "i3-launcher: warning: keyboard grab refused ({:?})",
+                    "launcher-rs: warning: keyboard grab refused ({:?})",
                     reply.status
                 );
             }
@@ -332,8 +332,8 @@ impl Drop for X11 {
 }
 
 fn debug(message: impl Fn() -> String) {
-    if std::env::var_os("I3L_DEBUG").is_some() {
-        eprintln!("i3-launcher: {}", message());
+    if std::env::var_os("LAUNCHER_DEBUG").is_some() {
+        eprintln!("launcher-rs: {}", message());
     }
 }
 

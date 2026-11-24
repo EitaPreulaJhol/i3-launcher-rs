@@ -1,5 +1,5 @@
 #!/bin/sh
-# Install i3-launcher-rs on the system.
+# Install launcher-rs on the system.
 #
 # Usage:
 #   ./install.sh                 # build (release) and install into ~/.local/bin
@@ -17,7 +17,7 @@ PREFIX=${PREFIX:-"$HOME/.local"}
 BINDIR=${BINDIR:-"$PREFIX/bin"}
 DESTDIR=${DESTDIR:-}
 TARGET_DIR=${CARGO_TARGET_DIR:-"$SCRIPT_DIR/target"}
-BIN=i3-launcher
+BIN=launcher-rs
 
 usage() {
     cat <<EOF
@@ -73,5 +73,4 @@ if [ -z "$DESTDIR" ] && [ "$BINDIR" != "$HOME/.local/bin" ]; then
     esac
 fi
 
-echo "done. In ~/.config/i3/config:"
-echo "    bindsym \$mod+d exec --no-startup-id $BIN"
+echo "done. Bind '$BIN' to a key in your window manager."

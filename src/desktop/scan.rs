@@ -202,8 +202,8 @@ fn is_executable(path: &Path) -> bool {
 }
 
 fn debug(msg: &str) {
-    if std::env::var_os("I3L_DEBUG").is_some() {
-        eprintln!("i3-launcher: {msg}");
+    if std::env::var_os("LAUNCHER_DEBUG").is_some() {
+        eprintln!("launcher-rs: {msg}");
     }
 }
 
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn scans_recursively_and_dedups() {
-        let base = std::env::temp_dir().join(format!("i3l-scan-{}", std::process::id()));
+        let base = std::env::temp_dir().join(format!("launcher-rs-scan-{}", std::process::id()));
         let _ = fs::remove_dir_all(&base);
         let high = base.join("high/applications");
         let low = base.join("low/applications");
@@ -253,7 +253,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn follows_symlinked_desktop_files() {
-        let base = std::env::temp_dir().join(format!("i3l-symlink-{}", std::process::id()));
+        let base = std::env::temp_dir().join(format!("launcher-rs-symlink-{}", std::process::id()));
         let _ = fs::remove_dir_all(&base);
         let apps = base.join("applications");
         let data = base.join("data");

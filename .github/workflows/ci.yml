@@ -83,6 +83,6 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v7
         with:
-          name: i3-launcher
-          path: target/release/i3-launcher
+          name: launcher-rs
+          path: target/release/launcher-rs
           if-no-files-found: error

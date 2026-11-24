@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn path_items_are_unique_executables() {
-        let base = std::env::temp_dir().join(format!("i3l-path-{}", std::process::id()));
+        let base = std::env::temp_dir().join(format!("launcher-rs-path-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&base);
         let first = base.join("a");
         let second = base.join("b");

@@ -2,7 +2,8 @@
 
 ## Requirements
 
-- Linux with X11 (i3/Xorg). Wayland is not supported yet.
+- Linux with X11 (Xorg). Any window manager works; Wayland is not supported
+  yet.
 - Rust stable, version **1.89** or newer.
 - A working font stack through fontconfig; `cosmic-text` loads system fonts.
 
@@ -12,8 +13,8 @@ fontconfig development packages.
 ## From source
 
 ```bash
-git clone https://github.com/EitaPreulaJhol/i3-launcher-rs.git
-cd i3-launcher-rs
+git clone https://github.com/EitaPreulaJhol/launcher-rs.git
+cd launcher-rs
 ```
 
 Pick one of the options below.
@@ -63,32 +64,55 @@ This installs into `~/.cargo/bin`, which must be on your `PATH`.
 
 ```bash
 cargo build --release
-# binary at target/release/i3-launcher
+# binary at target/release/launcher-rs
 ```
 
 ### Prebuilt binaries
 
 Prebuilt x86_64 Linux binaries are attached to
-[releases](https://github.com/EitaPreulaJhol/i3-launcher-rs/releases).
+[releases](https://github.com/EitaPreulaJhol/launcher-rs/releases).
 
-## i3 setup
+## Window manager setup
 
-Add a binding to `~/.config/i3/config`:
+Bind `launcher-rs` to a key in your window manager's config. Examples:
 
-```
-bindsym $mod+d exec --no-startup-id i3-launcher
-```
-
-Useful variants:
+**bspwm** (`~/.config/sxhkd/sxhkdrc`):
 
 ```
-bindsym $mod+Shift+d exec --no-startup-id i3-launcher -b      # bottom edge
-bindsym $mod+x exec --no-startup-id i3-launcher --print       # print selection
+super + d
+    launcher-rs
 ```
 
-> If you use i3bar at the top, the strip covers the bar while it is open (like
-> dmenu). To show it just below the bar, set `offset = 24` (or your i3bar
-> height) in the `[bar]` section.
+**awesome** (`~/.config/awesome/rc.lua`):
+
+```lua
+awful.key({ modkey }, "d", function() awful.spawn("launcher-rs") end)
+```
+
+**openbox** (`~/.config/openbox/rc.xml`):
+
+```xml
+<keybind key="W-d">
+  <action name="Execute"><command>launcher-rs</command></action>
+</keybind>
+```
+
+**dwm** (`config.h`):
+
+```c
+{ MODKEY, XK_d, spawn, SHCMD("launcher-rs") },
+```
+
+Useful variants of the command:
+
+```
+launcher-rs -b              # bottom edge
+launcher-rs --print         # print the selection instead of launching it
+```
+
+> If you run a status bar at the top (polybar, xfce4-panel, …), the strip
+> covers the bar while it is open (like dmenu). To show it just below the bar,
+> set `offset = 24` (or your bar height) in the `[bar]` section.
 
 Configuration is optional; without a config file the built-in defaults are
 used. See [Configuration](configuration.md).
@@ -98,7 +122,7 @@ used. See [Configuration](configuration.md).
 ```bash
 make uninstall
 # or remove the binary manually
-rm ~/.local/bin/i3-launcher
+rm ~/.local/bin/launcher-rs
 ```
 
-The optional config lives at `~/.config/i3-launcher/config.toml`.
+The optional config lives at `~/.config/launcher-rs/config.toml`.

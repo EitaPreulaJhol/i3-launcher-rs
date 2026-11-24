@@ -2,7 +2,7 @@
 
 ## Overview
 
-`i3-launcher-rs` is a small X11 client: it scans `.desktop` files, filters and
+`launcher-rs` is a small X11 client: it scans `.desktop` files, filters and
 sorts them as you type, paints a single horizontal row into a pixmap and copies
 that pixmap to an `override-redirect` window. There is no async runtime, no
 toolkit and no compositor dependency.
@@ -21,7 +21,7 @@ the existing instance instead of creating another window.
 
 | Area | Choice | Why |
 | --- | --- | --- |
-| Window | `x11rb` (pure protocol) | Exact control over position/size, `override-redirect` (i3 does not manage it), keyboard grab, multi-monitor via RandR 1.5 |
+| Window | `x11rb` (pure protocol) | Exact control over position/size, `override-redirect` (the WM does not manage it), keyboard grab, multi-monitor via RandR 1.5 |
 | Drawing | `tiny-skia` (CPU) | Antialiased rasterization; `Pixmap` compatible with `resvg`; no GPU or compositor |
 | Text | `cosmic-text` | Shaping, font fallback and glyph rasterization (`SwashCache`) |
 | Icons | `resvg` + `image` | SVG rendered at the final size; PNG resized with Lanczos |
@@ -142,9 +142,9 @@ only for visible items, and the result already comes out at the final size.
 - The keyboard is grabbed exclusively; mouse events stay available.
 - Before opening, the current input focus is saved. On close, focus is returned
   to that window only if the launcher still held it.
-- A `_I3_LAUNCHER_RUNNING` selection is claimed atomically. If another instance
+- A `_LAUNCHER_RS_RUNNING` selection is claimed atomically. If another instance
   already owns it, the new process raises and focuses the running strip and
-  exits, so pressing the i3 binding repeatedly never stacks windows.
+  exits, so pressing the keybinding repeatedly never stacks windows.
 
 ## Rendering path
 
@@ -158,7 +158,7 @@ Icons are loaded only for visible cells. Text measurement results are cached.
 
 ## Startup cost
 
-Measured with i3 4.22/Xorg at 1366x768 and 38 applications:
+Measured with Xorg at 1366x768 and 38 applications:
 
 ```text
 config:           0 ms

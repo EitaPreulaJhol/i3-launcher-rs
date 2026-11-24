@@ -1,23 +1,23 @@
 [package]
-name = "i3-launcher-rs"
+name = "launcher-rs"
 version = "0.1.3"
 edition = "2021"
 rust-version = "1.89"
-description = "dmenu-style application launcher strip for i3, with icons"
+description = "dmenu-style application launcher strip for X11 window managers, with icons"
 license = "MIT"
-repository = "https://github.com/EitaPreulaJhol/i3-launcher-rs"
-homepage = "https://github.com/EitaPreulaJhol/i3-launcher-rs"
+repository = "https://github.com/EitaPreulaJhol/launcher-rs"
+homepage = "https://github.com/EitaPreulaJhol/launcher-rs"
 readme = "README.md"
-keywords = ["i3", "dmenu", "launcher", "x11", "desktop"]
+keywords = ["dmenu", "launcher", "x11", "window-manager", "desktop"]
 categories = ["command-line-utilities", "gui"]
-default-run = "i3-launcher"
+default-run = "launcher-rs"
 
 [lib]
-name = "i3_launcher"
+name = "launcher_rs"
 path = "src/lib.rs"
 
 [[bin]]
-name = "i3-launcher"
+name = "launcher-rs"
 path = "src/main.rs"
 
 [dependencies]

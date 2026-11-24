@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Deserializer};
 
 /// Directory name used under `$XDG_CONFIG_HOME`.
-pub const CONFIG_DIR: &str = "i3-launcher";
+pub const CONFIG_DIR: &str = "launcher-rs";
 /// File name searched inside [`CONFIG_DIR`].
 pub const CONFIG_FILE: &str = "config.toml";
 
@@ -542,8 +542,8 @@ impl Config {
     /// Load the configuration.
     ///
     /// An explicitly given path (from `--config`) must exist. Otherwise the
-    /// search path is `$I3L_CONFIG`, the XDG config dir and finally the HOME
-    /// fallback; missing files yield the built-in defaults.
+    /// search path is `$LAUNCHER_CONFIG`, the XDG config dir and finally the
+    /// HOME fallback; missing files yield the built-in defaults.
     ///
     /// `theme` overrides the theme written in the file (from `--theme`).
     pub fn load(explicit: Option<&Path>, theme: Option<&str>) -> Result<Self> {
@@ -593,7 +593,7 @@ impl Config {
     /// Candidate config locations, highest priority first.
     pub fn search_paths() -> Vec<PathBuf> {
         let mut paths = Vec::new();
-        if let Some(p) = std::env::var_os("I3L_CONFIG") {
+        if let Some(p) = std::env::var_os("LAUNCHER_CONFIG") {
             if !p.is_empty() {
                 paths.push(PathBuf::from(p));
             }

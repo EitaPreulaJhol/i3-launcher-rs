@@ -433,7 +433,7 @@ mod tests {
 
     fn fixture() -> (PathBuf, PathBuf) {
         let base = std::env::temp_dir().join(format!(
-            "i3l-icons-{}-{:?}",
+            "launcher-rs-icons-{}-{:?}",
             std::process::id(),
             std::thread::current().id()
         ));

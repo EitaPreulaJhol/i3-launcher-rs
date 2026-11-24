@@ -1,7 +1,7 @@
 # Usage
 
 ```
-i3-launcher [OPTIONS]
+launcher-rs [OPTIONS]
 ```
 
 ## Options
@@ -86,13 +86,13 @@ prompt stays `Run: `. `$PATH` is scanned on demand the first time you press
 Read lines from stdin and print the selected one to stdout:
 
 ```bash
-printf 'one\ntwo\nthree\n' | i3-launcher --dmenu --prompt 'Choose: '
+printf 'one\ntwo\nthree\n' | launcher-rs --dmenu --prompt 'Choose: '
 ```
 
 Run the selection through the configured shell (`/bin/sh` by default):
 
 ```bash
-ls | i3-launcher --dmenu --exec
+ls | launcher-rs --dmenu --exec
 ```
 
 In dmenu mode the default prompt is empty; `-p` overrides it.
@@ -103,7 +103,7 @@ Print the selected application name instead of launching it. Useful for tests
 and script integration:
 
 ```bash
-i3-launcher --print
+launcher-rs --print
 ```
 
 ## Monitor selection
@@ -121,10 +121,10 @@ i3-launcher --print
 ## Examples
 
 ```bash
-i3-launcher                                   # default strip on the focused monitor
-i3-launcher -b                                # bottom edge
-i3-launcher --width 60% --align center        # centered, 60% wide
-i3-launcher --theme tokyo-night                # built-in theme
-i3-launcher --match prefix --case-sensitive   # search options
-i3-launcher --offset 24                       # just below a 24px i3bar
+launcher-rs                                   # default strip on the focused monitor
+launcher-rs -b                                # bottom edge
+launcher-rs --width 60% --align center        # centered, 60% wide
+launcher-rs --theme tokyo-night                # built-in theme
+launcher-rs --match prefix --case-sensitive   # search options
+launcher-rs --offset 24                       # just below a 24px status bar
 ```

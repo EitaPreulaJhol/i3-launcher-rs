@@ -39,10 +39,10 @@ The examples open no window (except the last command):
 cargo run --release --example measure       # widths measured by cosmic-text
 cargo run --release --example layout_dump   # cells/viewport for 1366px
 cargo run --release --example match_dump -- ala
-I3L_DEBUG=1 cargo run --release             # monitor/item/theme log
+LAUNCHER_DEBUG=1 cargo run --release       # monitor/item/theme log
 ```
 
-`I3L_DEBUG=1` prints timing information (config load, scan, fonts, first
+`LAUNCHER_DEBUG=1` prints timing information (config load, scan, fonts, first
 frame) and the selected monitor/theme.
 
 ## Code layout

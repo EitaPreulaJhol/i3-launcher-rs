@@ -1,4 +1,4 @@
-//! i3-launcher: dmenu-style application launcher strip with icons.
+//! launcher-rs: dmenu-style application launcher strip with icons.
 
 use std::process::ExitCode;
 use std::time::Instant;
@@ -6,19 +6,19 @@ use std::time::Instant;
 use anyhow::{Context, Result};
 use tiny_skia::Pixmap;
 
-use i3_launcher::app;
-use i3_launcher::cli;
-use i3_launcher::config::Config;
-use i3_launcher::desktop::launch;
-use i3_launcher::ui::paint::{pixmap_to_x11, Painter};
-use i3_launcher::ui::state::{App, Outcome};
-use i3_launcher::x11::{InputEvent, X11};
+use launcher_rs::app;
+use launcher_rs::cli;
+use launcher_rs::config::Config;
+use launcher_rs::desktop::launch;
+use launcher_rs::ui::paint::{pixmap_to_x11, Painter};
+use launcher_rs::ui::state::{App, Outcome};
+use launcher_rs::x11::{InputEvent, X11};
 
 fn main() -> ExitCode {
     match run() {
         Ok(code) => ExitCode::from(code as u8),
         Err(error) => {
-            eprintln!("i3-launcher: {error:#}");
+            eprintln!("launcher-rs: {error:#}");
             ExitCode::from(2)
         }
     }
@@ -32,17 +32,17 @@ fn run() -> Result<i32> {
         return Ok(0);
     }
     if options.version {
-        println!("i3-launcher {}", cli::VERSION);
+        println!("launcher-rs {}", cli::VERSION);
         return Ok(0);
     }
     if options.list_themes {
-        for name in i3_launcher::theme::names() {
+        for name in launcher_rs::theme::names() {
             println!("{name}");
         }
         return Ok(0);
     }
     for warning in &options.warnings {
-        eprintln!("i3-launcher: {warning}");
+        eprintln!("launcher-rs: {warning}");
     }
 
     let mut cfg = Config::load(options.config.as_deref(), options.theme.as_deref())?;
@@ -183,7 +183,7 @@ fn run() -> Result<i32> {
 
 fn handle_outcome(
     outcome: Outcome,
-    entries: &[i3_launcher::desktop::DesktopEntry],
+    entries: &[launcher_rs::desktop::DesktopEntry],
     cfg: &Config,
 ) -> Result<i32> {
     match outcome {
@@ -223,7 +223,7 @@ fn handle_outcome(
 }
 
 fn debug(message: impl Fn() -> String) {
-    if std::env::var_os("I3L_DEBUG").is_some() {
-        eprintln!("i3-launcher: {}", message());
+    if std::env::var_os("LAUNCHER_DEBUG").is_some() {
+        eprintln!("launcher-rs: {}", message());
     }
 }

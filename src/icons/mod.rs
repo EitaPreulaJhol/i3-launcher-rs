@@ -70,8 +70,8 @@ impl IconCache {
             .and_then(|path| match render_icon(&path, self.size) {
                 Ok(pixmap) => Some(pixmap),
                 Err(err) => {
-                    if std::env::var_os("I3L_DEBUG").is_some() {
-                        eprintln!("i3-launcher: icon `{}`: {err:#}", path.display());
+                    if std::env::var_os("LAUNCHER_DEBUG").is_some() {
+                        eprintln!("launcher-rs: icon `{}`: {err:#}", path.display());
                     }
                     None
                 }

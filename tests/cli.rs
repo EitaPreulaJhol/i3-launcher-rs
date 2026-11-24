@@ -3,7 +3,7 @@
 use std::process::Command;
 
 fn launcher() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_i3-launcher"))
+    Command::new(env!("CARGO_BIN_EXE_launcher-rs"))
 }
 
 #[test]
@@ -11,7 +11,7 @@ fn help_prints_usage() {
     let output = launcher().arg("--help").output().unwrap();
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("i3-launcher-rs"));
+    assert!(stdout.contains("launcher-rs"));
     assert!(stdout.contains("--dmenu"));
     assert!(stdout.contains("--monitor"));
 }
