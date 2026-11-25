@@ -345,7 +345,7 @@ impl Default for BarConfig {
         Self {
             edge: Edge::Top,
             offset: 0,
-            height: 20,
+            height: 18,
             margin: 0,
             width: None,
             align: Align::Left,
@@ -754,7 +754,7 @@ mod tests {
         assert_eq!(appearance.font, "Sans");
         assert_eq!(appearance.font_size, 12.0);
         assert_eq!(appearance.icon_size, 14);
-        assert_eq!(BarConfig::default().height, 20);
+        assert_eq!(BarConfig::default().height, 18);
     }
 
     #[test]

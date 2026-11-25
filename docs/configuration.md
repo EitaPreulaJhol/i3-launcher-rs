@@ -24,7 +24,7 @@ file and the same merge is applied.
 ```toml
 [bar]
 edge = "top"
-height = 20
+height = 18
 margin = 0
 offset = 0
 width = "100%"
@@ -61,7 +61,7 @@ max_results = 0
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
 | `edge` | `top` \| `bottom` | `top` | Monitor edge where the strip appears |
-| `height` | pixels | `20` | Strip height |
+| `height` | pixels | `18` | Strip height |
 | `offset` | pixels | `0` | Distance from the edge (use the status bar height to sit below it) |
 | `margin` | pixels | `0` | Outer horizontal margin, applied on both sides |
 | `width` | pixels \| `"80%"` | monitor width minus margins | Strip width |

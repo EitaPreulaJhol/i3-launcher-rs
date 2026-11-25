@@ -5,13 +5,13 @@
 # `original_source/dmenu.rasi` (the same visual scheme as the polybar status bar).
 #
 #   background #DEDEDE · text #333333 · selection #C5C5C5 (black text)
-#   1px selection border #FF8C00 · square corners · 20px height
+#   1px selection border #FF8C00 · square corners · 18px height
 
 [bar]
 # Monitor edge where the strip appears: "top" or "bottom".
 edge = "top"
-# Strip height in pixels (20 = thin bar; increase it for larger icons).
-height = 20
+# Strip height in pixels (18 = thin bar; increase it for larger icons).
+height = 18
 # Outer horizontal margin (applied on both sides).
 margin = 0
 # Distance from the edge. Use, for example, 24 to sit just below the status bar.
