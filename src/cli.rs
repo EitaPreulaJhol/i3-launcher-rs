@@ -261,3 +261,252 @@ pub fn apply(opts: &Options, cfg: &mut Config) -> Result<()> {
 pub fn help() -> &'static str {
     HELP
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{Color, MatchMode};
+
+    fn parse_args(args: &[&str]) -> Result<Options> {
+        parse(args.iter().map(ToString::to_string))
+    }
+
+    #[test]
+    fn empty_arguments_give_defaults() {
+        let opts = parse_args(&[]).unwrap();
+        assert!(!opts.help && !opts.version && !opts.dmenu && !opts.print);
+        assert!(opts.prompt.is_none() && opts.edge.is_none() && opts.warnings.is_empty());
+    }
+
+    #[test]
+    fn flags_accept_separate_and_inline_values() {
+        let opts = parse_args(&["-p", "Go: ", "--font=Iosevka", "--height", "24"]).unwrap();
+        assert_eq!(opts.prompt.as_deref(), Some("Go: "));
+        assert_eq!(opts.font.as_deref(), Some("Iosevka"));
+        assert_eq!(opts.height, Some(24));
+
+        // Only the first `=` splits; the rest belongs to the value.
+        let opts = parse_args(&["--prompt=a=b"]).unwrap();
+        assert_eq!(opts.prompt.as_deref(), Some("a=b"));
+    }
+
+    #[test]
+    fn values_that_look_like_flags_are_taken_verbatim() {
+        let opts = parse_args(&["-p", "--dmenu"]).unwrap();
+        assert_eq!(opts.prompt.as_deref(), Some("--dmenu"));
+        assert!(!opts.dmenu);
+    }
+
+    #[test]
+    fn positional_argument_with_equals_is_rejected() {
+        let error = parse_args(&["key=value"]).unwrap_err().to_string();
+        assert!(error.contains("unknown option `key=value`"), "{error}");
+    }
+
+    #[test]
+    fn missing_value_is_an_error() {
+        let error = parse_args(&["--theme"]).unwrap_err().to_string();
+        assert_eq!(error, "option `--theme` requires a value");
+    }
+
+    #[test]
+    fn short_and_long_aliases_match() {
+        let pairs: &[(&[&str], &[&str])] = &[
+            (&["-b"], &["--edge", "bottom"]),
+            (&["-d"], &["--dmenu"]),
+            (&["-fn", "Mono"], &["--font", "Mono"]),
+            (&["--term", "st"], &["--terminal", "st"]),
+            (&["--themes"], &["--list-themes"]),
+            (&["-m", "1"], &["--monitor=1"]),
+        ];
+        for (short, long) in pairs {
+            let a = format!("{:?}", parse_args(short).unwrap());
+            let b = format!("{:?}", parse_args(long).unwrap());
+            assert_eq!(a, b, "{short:?} vs {long:?}");
+        }
+    }
+
+    #[test]
+    fn typed_values_are_parsed() {
+        let opts = parse_args(&[
+            "--edge",
+            "Bottom",
+            "--monitor",
+            "HDMI-A-0",
+            "--width",
+            "50%",
+            "--align",
+            "center",
+            "--match",
+            "prefix",
+            "--font-size",
+            " 11.5 ",
+        ])
+        .unwrap();
+        assert_eq!(opts.edge, Some(Edge::Bottom));
+        assert_eq!(opts.monitor, Some(MonitorTarget::Name("HDMI-A-0".into())));
+        assert_eq!(opts.width, Some(Dimension::Percent(50.0)));
+        assert_eq!(opts.align, Some(Align::Center));
+        assert_eq!(opts.match_mode, Some(MatchMode::Prefix));
+        assert_eq!(opts.font_size, Some(11.5));
+    }
+
+    #[test]
+    fn invalid_values_name_the_flag() {
+        for (args, needle) in [
+            (
+                &["--height", "tall"][..],
+                "invalid value for `--height`: `tall`",
+            ),
+            (
+                &["--icon-size", "-3"][..],
+                "invalid value for `--icon-size`",
+            ),
+            (&["--align", "middle"][..], "invalid value for `--align`"),
+            (&["--edge=left"][..], "invalid value for `--edge`"),
+            (&["--match", "regex"][..], "invalid value for `--match`"),
+        ] {
+            let error = parse_args(args).unwrap_err().to_string();
+            assert!(error.contains(needle), "{args:?}: {error}");
+        }
+    }
+
+    #[test]
+    fn case_flags_last_one_wins() {
+        let opts = parse_args(&["--case-sensitive", "-i"]).unwrap();
+        assert_eq!(opts.case_sensitive, Some(false));
+        let opts = parse_args(&["-i", "--case-sensitive"]).unwrap();
+        assert_eq!(opts.case_sensitive, Some(true));
+    }
+
+    #[test]
+    fn unsupported_dmenu_flags_warn_and_consume_their_value() {
+        let opts = parse_args(&["-l", "10", "-w", "0x123", "-f", "--print"]).unwrap();
+        assert_eq!(opts.warnings.len(), 2);
+        assert!(opts.print);
+
+        assert!(parse_args(&["-l"]).is_err());
+    }
+
+    #[test]
+    fn apply_overrides_config() {
+        let opts = parse_args(&[
+            "-p",
+            "> ",
+            "-b",
+            "--height=30",
+            "--margin=4",
+            "--offset=2",
+            "--width=800",
+            "--align=right",
+            "--icon-size=16",
+            "--no-icons",
+            "--terminal=foot",
+            "--print",
+            "--case-sensitive",
+            "--match=substring",
+            "-fn",
+            "Serif",
+            "--font-size=10",
+            "-m",
+            "primary",
+        ])
+        .unwrap();
+        let mut cfg = Config::default();
+        apply(&opts, &mut cfg).unwrap();
+        assert_eq!(cfg.appearance.prompt, "> ");
+        assert_eq!(cfg.bar.edge, Edge::Bottom);
+        assert_eq!(cfg.bar.height, 30);
+        assert_eq!(cfg.bar.margin, 4);
+        assert_eq!(cfg.bar.offset, 2);
+        assert_eq!(cfg.bar.width, Some(Dimension::Px(800)));
+        assert_eq!(cfg.bar.align, Align::Right);
+        assert_eq!(cfg.appearance.icon_size, 16);
+        assert!(!cfg.appearance.show_icons);
+        assert_eq!(cfg.behavior.terminal, "foot");
+        assert!(cfg.behavior.print_selection);
+        assert!(cfg.behavior.case_sensitive);
+        assert_eq!(cfg.behavior.match_mode, MatchMode::Substring);
+        assert_eq!(cfg.appearance.font, "Serif");
+        assert_eq!(cfg.appearance.font_size, 10.0);
+        assert_eq!(cfg.monitor.target, MonitorTarget::Primary);
+    }
+
+    #[test]
+    fn apply_without_flags_keeps_config() {
+        let mut cfg = Config::default();
+        let before = format!("{cfg:?}");
+        apply(&Options::default(), &mut cfg).unwrap();
+        assert_eq!(format!("{cfg:?}"), before);
+    }
+
+    #[test]
+    fn dmenu_clears_prompt_unless_given() {
+        let mut cfg = Config::default();
+        apply(&parse_args(&["--dmenu"]).unwrap(), &mut cfg).unwrap();
+        assert!(cfg.appearance.prompt.is_empty());
+
+        let mut cfg = Config::default();
+        apply(&parse_args(&["--dmenu", "-p", "pick"]).unwrap(), &mut cfg).unwrap();
+        assert_eq!(cfg.appearance.prompt, "pick");
+    }
+
+    #[test]
+    fn apply_parses_dmenu_colors() {
+        let opts = parse_args(&[
+            "-nb", "#000", "-nf", "#fff", "-sb", "#112233", "-sf", "white",
+        ])
+        .unwrap();
+        let mut cfg = Config::default();
+        apply(&opts, &mut cfg).unwrap();
+        assert_eq!(cfg.style.bg, Color::rgb(0, 0, 0));
+        assert_eq!(cfg.style.fg, Color::rgb(255, 255, 255));
+        assert_eq!(cfg.style.selection_bg, Color::rgb(0x11, 0x22, 0x33));
+        assert_eq!(cfg.style.selection_fg, Color::rgb(255, 255, 255));
+    }
+
+    #[test]
+    fn apply_rejects_bad_colors() {
+        let opts = parse_args(&["-sb", "#12"]).unwrap();
+        let error = apply(&opts, &mut Config::default())
+            .unwrap_err()
+            .to_string();
+        assert!(error.starts_with("invalid color `#12`"), "{error}");
+    }
+
+    #[test]
+    fn help_mentions_every_long_flag() {
+        for flag in [
+            "--config",
+            "--theme",
+            "--themes",
+            "--prompt",
+            "--bottom",
+            "--edge",
+            "--monitor",
+            "--height",
+            "--margin",
+            "--offset",
+            "--width",
+            "--align",
+            "--font",
+            "--font-size",
+            "--icon-size",
+            "--no-icons",
+            "--terminal",
+            "--case-sensitive",
+            "--match",
+            "--dmenu",
+            "--exec",
+            "--print",
+            "--normal-bg",
+            "--normal-fg",
+            "--selected-bg",
+            "--selected-fg",
+            "--help",
+            "--version",
+        ] {
+            assert!(help().contains(flag), "help is missing {flag}");
+        }
+    }
+}
