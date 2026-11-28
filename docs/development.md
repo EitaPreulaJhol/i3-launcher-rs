@@ -126,7 +126,7 @@ Commit messages in the history follow a short `area: summary` style
 2. Commit the bump and create a signed/annotated tag:
 
    ```bash
-   git tag -a v0.2.0 -m "v0.2.0"
+   git tag -a v0.3.0 -m "v0.3.0"
    git push origin master --tags
    ```
 
