@@ -22,7 +22,17 @@ pub struct Painter {
     line_height: f32,
     /// Measured label widths, keyed by text.
     text_widths: HashMap<String, f32>,
+    /// Shaped single-color text, keyed by text. Glyphs carry no color, so
+    /// one buffer serves every foreground (normal, selected, prompt, ...).
+    shaped_plain: HashMap<String, Buffer>,
+    /// Shaped text with highlighted characters, keyed by text, highlighted
+    /// character indices and highlight color.
+    shaped_highlighted: HashMap<(String, Vec<u32>, Color), Buffer>,
 }
+
+/// Upper bound for each shaped-text cache before it is cleared. Typing keeps
+/// producing new strings; the visible set is far smaller than this.
+const SHAPED_CACHE_LIMIT: usize = 512;
 
 impl Painter {
     pub fn new(cfg: &Config) -> Self {
@@ -39,6 +49,8 @@ impl Painter {
             font_weight: cfg.appearance.font_weight.clamp(100, 1000),
             line_height,
             text_widths: HashMap::new(),
+            shaped_plain: HashMap::new(),
+            shaped_highlighted: HashMap::new(),
         }
     }
 
@@ -350,54 +362,57 @@ impl Painter {
         if text.is_empty() {
             return;
         }
-        let family = self.font_family.clone();
-        let base = self.attrs(&family);
-        let normal = base.clone().color(to_cosmic(normal_color));
-        let highlight = base.clone().color(to_cosmic(highlight_color));
-        let spans = build_spans(text, positions, &normal, &highlight);
-
+        // Shaping does not depend on color (cosmic-text only compares family,
+        // stretch, style and weight when splitting runs), so the glyph layout
+        // can be cached and the normal color applied at draw time.
+        let highlighted = !positions.is_empty() && highlight_color != normal_color;
         let metrics = Metrics::new(self.font_size, self.line_height);
-        let mut buffer = Buffer::new(&mut self.font_system, metrics);
-        buffer.set_size(None, None);
-        buffer.set_rich_text(spans, &base, Shaping::Advanced, None);
+        let family = self.font_family.as_str();
+        let base = Attrs::new()
+            .family(parse_family(family))
+            .weight(Weight(self.font_weight));
+
+        let buffer = if highlighted {
+            if self.shaped_highlighted.len() >= SHAPED_CACHE_LIMIT {
+                self.shaped_highlighted.clear();
+            }
+            let font_system = &mut self.font_system;
+            self.shaped_highlighted
+                .entry((text.to_string(), positions.to_vec(), highlight_color))
+                .or_insert_with(|| {
+                    let highlight = base.clone().color(to_cosmic(highlight_color));
+                    let spans = build_spans(text, positions, &base, &highlight);
+                    let mut buffer = Buffer::new(font_system, metrics);
+                    buffer.set_size(None, None);
+                    buffer.set_rich_text(spans, &base, Shaping::Advanced, None);
+                    buffer
+                })
+        } else {
+            if !self.shaped_plain.contains_key(text) {
+                if self.shaped_plain.len() >= SHAPED_CACHE_LIMIT {
+                    self.shaped_plain.clear();
+                }
+                let mut buffer = Buffer::new(&mut self.font_system, metrics);
+                buffer.set_size(None, None);
+                buffer.set_rich_text([(text, base.clone())], &base, Shaping::Advanced, None);
+                self.shaped_plain.insert(text.to_string(), buffer);
+            }
+            let Some(buffer) = self.shaped_plain.get_mut(text) else {
+                return;
+            };
+            buffer
+        };
 
         let y = ((box_height - self.line_height) / 2.0).round();
-        self.blit_buffer(
+        blit_buffer(
+            &mut self.font_system,
+            &mut self.swash,
             target,
-            &mut buffer,
+            buffer,
             x.round() as i32,
             y as i32,
             normal_color,
         );
-    }
-
-    fn blit_buffer(
-        &mut self,
-        target: &mut Pixmap,
-        buffer: &mut Buffer,
-        origin_x: i32,
-        origin_y: i32,
-        color: Color,
-    ) {
-        let width = target.width() as i32;
-        let height = target.height() as i32;
-        let data = target.data_mut();
-        let Painter {
-            font_system, swash, ..
-        } = self;
-        let base = to_cosmic(color);
-        buffer.draw(font_system, swash, base, |x, y, w, h, color| {
-            blend_rect(
-                data,
-                width,
-                height,
-                origin_x + x,
-                origin_y + y,
-                w as i32,
-                h as i32,
-                color,
-            );
-        });
     }
 
     /// Slice of the query that fits the input field, keeping the cursor visible.
@@ -418,17 +433,52 @@ impl Painter {
     }
 }
 
+/// Rasterize `buffer` into `target`; glyphs without their own color use `color`.
+fn blit_buffer(
+    font_system: &mut FontSystem,
+    swash: &mut SwashCache,
+    target: &mut Pixmap,
+    buffer: &mut Buffer,
+    origin_x: i32,
+    origin_y: i32,
+    color: Color,
+) {
+    let width = target.width() as i32;
+    let height = target.height() as i32;
+    let data = target.data_mut();
+    let base = to_cosmic(color);
+    buffer.draw(font_system, swash, base, |x, y, w, h, color| {
+        blend_rect(
+            data,
+            width,
+            height,
+            origin_x + x,
+            origin_y + y,
+            w as i32,
+            h as i32,
+            color,
+        );
+    });
+}
+
 /// Convert a premultiplied RGBA pixmap into X11 `ZPixmap` bytes (native u32
 /// `0x00RRGGBB`, which on little-endian memory is B, G, R, X).
 pub fn pixmap_to_x11(pixmap: &Pixmap) -> Vec<u8> {
-    let mut out = Vec::with_capacity(pixmap.data().len());
-    for pixel in pixmap.pixels() {
+    let mut out = Vec::new();
+    pixmap_to_x11_into(pixmap, &mut out);
+    out
+}
+
+/// Like [`pixmap_to_x11`], but reuses `out`'s allocation across frames.
+pub fn pixmap_to_x11_into(pixmap: &Pixmap, out: &mut Vec<u8>) {
+    out.resize(pixmap.data().len(), 0);
+    let (pixels_out, _) = out.as_chunks_mut::<4>();
+    for (pixel, bytes) in pixmap.pixels().iter().zip(pixels_out) {
         let color = pixel.demultiply();
         let value =
             ((color.red() as u32) << 16) | ((color.green() as u32) << 8) | color.blue() as u32;
-        out.extend_from_slice(&value.to_ne_bytes());
+        *bytes = value.to_ne_bytes();
     }
-    out
 }
 
 /// Split `text` into contiguous spans, alternating normal/highlight attributes
@@ -651,6 +701,20 @@ mod tests {
         let bytes = pixmap_to_x11(&pixmap);
         // X11 depth-24 ZPixmap: native u32 0x00RRGGBB.
         assert_eq!(&bytes[..4], &[0x2e, 0x1e, 0x1e, 0x00]);
+    }
+
+    #[test]
+    fn reused_x11_buffer_matches_fresh_conversion() {
+        let mut big = Pixmap::new(4, 2).unwrap();
+        big.fill(Color::rgba(0x10, 0x80, 0xff, 0x80).to_tiny_skia());
+        let mut small = Pixmap::new(1, 1).unwrap();
+        small.fill(Color::rgb(1, 2, 3).to_tiny_skia());
+
+        let mut reused = Vec::new();
+        for pixmap in [&big, &small, &big] {
+            pixmap_to_x11_into(pixmap, &mut reused);
+            assert_eq!(reused, pixmap_to_x11(pixmap));
+        }
     }
 
     #[test]

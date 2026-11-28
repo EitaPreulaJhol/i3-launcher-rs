@@ -17,7 +17,7 @@ pub const CONFIG_FILE: &str = "config.toml";
 // ---------------------------------------------------------------------------
 
 /// Straight (non-premultiplied) sRGB color.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Color {
     pub r: u8,
     pub g: u8,

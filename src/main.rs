@@ -10,7 +10,7 @@ use launcher_rs::app;
 use launcher_rs::cli;
 use launcher_rs::config::Config;
 use launcher_rs::desktop::launch;
-use launcher_rs::ui::paint::{pixmap_to_x11, Painter};
+use launcher_rs::ui::paint::{pixmap_to_x11_into, Painter};
 use launcher_rs::ui::state::{App, Outcome};
 use launcher_rs::x11::{InputEvent, X11};
 
@@ -132,10 +132,13 @@ fn run() -> Result<i32> {
         )
     };
 
+    // X11 copy of `surface`, reused for every frame.
+    let mut frame = Vec::new();
     let first_frame = Instant::now();
     application.relayout(&mut painter, &cfg, width as f32, height as f32);
     painter.paint(&mut surface, &application, &cfg);
-    x11.blit(&pixmap_to_x11(&surface))?;
+    pixmap_to_x11_into(&surface, &mut frame);
+    x11.blit(&frame)?;
     debug(|| {
         format!(
             "first frame: {} ms (total {} ms)",
@@ -149,7 +152,8 @@ fn run() -> Result<i32> {
         if redraw {
             application.relayout(&mut painter, &cfg, width as f32, height as f32);
             painter.paint(&mut surface, &application, &cfg);
-            x11.blit(&pixmap_to_x11(&surface))?;
+            pixmap_to_x11_into(&surface, &mut frame);
+            x11.blit(&frame)?;
             redraw = false;
         }
 
