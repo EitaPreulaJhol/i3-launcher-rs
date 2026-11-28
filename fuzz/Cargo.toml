@@ -1,0 +1,56 @@
+[package]
+name = "launcher-rs-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.launcher-rs]
+path = ".."
+
+# Keep the fuzz crate out of the main package's (implicit) workspace.
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "desktop_entry"
+path = "fuzz_targets/desktop_entry.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "exec"
+path = "fuzz_targets/exec.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "icon_theme"
+path = "fuzz_targets/icon_theme.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "config"
+path = "fuzz_targets/config.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "matching"
+path = "fuzz_targets/matching.rs"
+test = false
+doc = false
+bench = false
