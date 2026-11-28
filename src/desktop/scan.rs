@@ -33,10 +33,7 @@ pub fn applications_dirs() -> Vec<PathBuf> {
     // Flatpak exports are commonly missing from XDG_DATA_DIRS in minimal
     // window managers, so add them explicitly (lowest priority).
     if let Some(home) = dirs::home_dir() {
-        dirs.push(
-            home.join(".local/share/flatpak/exports/share/applications")
-                .to_path_buf(),
-        );
+        dirs.push(home.join(".local/share/flatpak/exports/share/applications"));
         dirs.push(home.join(".local/share/applications"));
     }
     dirs.push(PathBuf::from("/var/lib/flatpak/exports/share/applications"));

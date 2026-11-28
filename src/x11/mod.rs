@@ -248,15 +248,13 @@ impl X11 {
         ) {
             let _ = grab.reply();
         }
-        let _ = self.conn.set_input_focus(
-            x11rb::protocol::xproto::InputFocus::PARENT,
-            self.win,
-            CURRENT_TIME,
-        );
+        let _ = self
+            .conn
+            .set_input_focus(InputFocus::PARENT, self.win, CURRENT_TIME);
         let _ = self.conn.flush();
     }
 
-    pub fn translate(&self, event: Event) -> Option<InputEvent> {
+    pub fn translate(&self, event: &Event) -> Option<InputEvent> {
         match event {
             Event::KeyPress(event) => {
                 let mods = Mods::from_state(event.state.into());
@@ -346,7 +344,7 @@ fn instance_owner<C: Connection>(conn: &C, atom: u32) -> Result<Window> {
     Ok(conn.get_selection_owner(atom)?.reply()?.owner)
 }
 
-/// Raise and focus the current instance. Its FocusIn handler will reacquire
+/// Raise and focus the current instance. Its `FocusIn` handler will reacquire
 /// the keyboard grab on the owning connection.
 fn reactivate_instance(conn: &RustConnection, window: Window) {
     let _ = conn.configure_window(

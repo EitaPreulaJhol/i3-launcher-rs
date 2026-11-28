@@ -195,7 +195,7 @@ mod tests {
         // Directories must be ignored even if they are executable.
         std::fs::create_dir_all(second.join("a-directory")).unwrap();
 
-        let labels: Vec<String> = path_items_in(&[first.clone(), second.clone()])
+        let labels: Vec<String> = path_items_in(&[first.clone(), second])
             .into_iter()
             .map(|item| item.label)
             .collect();

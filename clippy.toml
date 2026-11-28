@@ -1,0 +1,6 @@
+# Tests may unwrap/expect freely; production code must not.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+
+# Proper names that `doc_markdown` would otherwise want in backticks.
+doc-valid-idents = ["RandR", "XInput", ".."]

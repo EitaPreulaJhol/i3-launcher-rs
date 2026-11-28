@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{anyhow, bail, Result};
 
 /// A parsed `.desktop` file. Fields are kept close to the spec; filtering of
-/// entries (Type, NoDisplay, TryExec, ...) happens in [`crate::desktop::scan`].
+/// entries (Type, `NoDisplay`, `TryExec`, ...) happens in [`crate::desktop::scan`].
 #[derive(Debug, Clone)]
 pub struct DesktopEntry {
     /// Desktop file ID: path relative to the applications dir, `/` replaced by `-`.

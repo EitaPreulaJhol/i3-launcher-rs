@@ -348,7 +348,10 @@ impl Painter {
     }
 
     /// Draw text, coloring the characters whose indices appear in `positions`.
-    #[allow(clippy::too_many_arguments)]
+    #[allow(
+        clippy::too_many_arguments,
+        reason = "painting helpers take geometry and colors as plain values"
+    )]
     fn draw_text_highlighted(
         &mut self,
         target: &mut Pixmap,
@@ -551,7 +554,10 @@ fn parse_family(name: &str) -> Family<'_> {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "painting helpers take geometry and colors as plain values"
+)]
 fn blend_rect(
     data: &mut [u8],
     width: i32,
@@ -619,7 +625,10 @@ fn fill_rounded(
     );
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "painting helpers take geometry and colors as plain values"
+)]
 fn stroke_rounded(
     target: &mut Pixmap,
     x: f32,

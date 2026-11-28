@@ -38,3 +38,33 @@ lto = "fat"
 codegen-units = 1
 strip = true
 panic = "abort"
+
+[lints.rust]
+unsafe_code = "forbid"
+rust_2018_idioms = { level = "warn", priority = -1 }
+unused_qualifications = "warn"
+
+[lints.clippy]
+# Panics and leftovers in production code (tests are exempt, see clippy.toml).
+unwrap_used = "warn"
+expect_used = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+# Needless work.
+redundant_clone = "warn"
+implicit_clone = "warn"
+cloned_instead_of_copied = "warn"
+inefficient_to_string = "warn"
+needless_collect = "warn"
+or_fun_call = "warn"
+needless_pass_by_value = "warn"
+trivially_copy_pass_by_ref = "warn"
+unnecessary_wraps = "warn"
+# Readability.
+manual_let_else = "warn"
+semicolon_if_nothing_returned = "warn"
+redundant_closure_for_method_calls = "warn"
+uninlined_format_args = "warn"
+doc_markdown = "warn"
+allow_attributes_without_reason = "warn"

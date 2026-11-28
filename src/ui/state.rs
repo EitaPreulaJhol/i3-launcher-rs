@@ -545,7 +545,10 @@ fn match_options(behavior: &Behavior) -> MatchOptions {
 }
 
 /// Lay out the visible cells and make sure the selection is inside the view.
-#[allow(clippy::too_many_arguments)]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "layout helpers take the viewport geometry as plain values"
+)]
 fn layout_viewport(
     items: &[Item],
     filtered: &[Match],
@@ -588,7 +591,10 @@ fn layout_viewport(
     (offset, cells)
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "layout helpers take the viewport geometry as plain values"
+)]
 fn build_cells(
     items: &[Item],
     filtered: &[Match],
@@ -677,7 +683,7 @@ mod tests {
 
     #[test]
     fn backspace_and_delete_work_on_utf8() {
-        let mut app = self::app();
+        let mut app = app();
         type_text(&mut app, "aé");
         assert_eq!(app.query, "aé");
         assert!(app.backspace(&Behavior::default()));
@@ -687,7 +693,7 @@ mod tests {
 
     #[test]
     fn selection_moves_and_clamps() {
-        let mut app = self::app();
+        let mut app = app();
         assert!(app.move_selection(1));
         assert_eq!(app.sel, 1);
         assert!(app.move_selection(10));
@@ -807,7 +813,7 @@ mod tests {
 
     #[test]
     fn tab_does_not_overwrite_the_query_without_modes() {
-        let mut app = self::app();
+        let mut app = app();
         type_text(&mut app, "term");
         app.handle_key(Keysym::Tab, Mods::default(), &Behavior::default());
         assert_eq!(app.query, "term");
@@ -830,14 +836,14 @@ mod tests {
 
     #[test]
     fn enter_activates_selection() {
-        let mut app = self::app();
+        let mut app = app();
         app.handle_key(Keysym::Return, Mods::default(), &Behavior::default());
         assert_eq!(app.outcome, Some(Outcome::Print("firefox".into())));
     }
 
     #[test]
     fn enter_without_selection_prints_query() {
-        let mut app = self::app();
+        let mut app = app();
         type_text(&mut app, "zzz");
         assert!(app.filtered.is_empty());
         app.handle_key(Keysym::Return, Mods::default(), &Behavior::default());
@@ -846,14 +852,14 @@ mod tests {
 
     #[test]
     fn escape_requests_quit() {
-        let mut app = self::app();
+        let mut app = app();
         app.handle_key(Keysym::Escape, Mods::default(), &Behavior::default());
         assert_eq!(app.outcome, Some(Outcome::Quit(1)));
     }
 
     #[test]
     fn lateral_arrows_move_selection_and_ctrl_moves_cursor() {
-        let mut app = self::app();
+        let mut app = app();
 
         // Empty query: arrows navigate the list.
         app.handle_key(Keysym::Right, Mods::default(), &Behavior::default());
@@ -881,7 +887,7 @@ mod tests {
 
     #[test]
     fn home_and_end_jump_to_list_edges() {
-        let mut app = self::app();
+        let mut app = app();
         app.handle_key(Keysym::End, Mods::default(), &Behavior::default());
         assert_eq!(app.sel, 2);
         assert_eq!(app.query, "");
@@ -898,7 +904,7 @@ mod tests {
 
     #[test]
     fn ctrl_w_removes_word() {
-        let mut app = self::app();
+        let mut app = app();
         type_text(&mut app, "foo bar");
         let mods = Mods {
             ctrl: true,
@@ -910,7 +916,7 @@ mod tests {
 
     #[test]
     fn word_movement_respects_boundaries() {
-        let mut app = self::app();
+        let mut app = app();
         type_text(&mut app, "foo bar baz");
         app.move_cursor_word(-1);
         assert_eq!(app.cursor, 8);

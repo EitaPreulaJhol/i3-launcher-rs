@@ -174,7 +174,7 @@ fn run() -> Result<i32> {
         }
 
         let event = x11.wait_for_event()?;
-        match x11.translate(event) {
+        match x11.translate(&event) {
             Some(InputEvent::Key { sym, mods }) => {
                 redraw = application.handle_key(sym, mods, &cfg.behavior);
             }
