@@ -79,7 +79,7 @@ with its `.sha256` checksum and the manual page in `docs/launcher-rs.1`:
 
 | Archive | Use it when |
 | --- | --- |
-| `launcher-rs-VERSION-x86_64-unknown-linux-gnu.tar.gz` | Regular glibc distributions (recommended) |
+| `launcher-rs-VERSION-x86_64-unknown-linux-gnu.tar.gz` | glibc 2.28 or newer: Debian 10+, Ubuntu 18.10+, Fedora 29+, RHEL 8+ and others (recommended) |
 | `launcher-rs-VERSION-x86_64-unknown-linux-musl.tar.gz` | Any distribution, including musl-based ones (Alpine, Void musl); fully static |
 
 The static musl build starts a few milliseconds slower (about 12 ms instead of

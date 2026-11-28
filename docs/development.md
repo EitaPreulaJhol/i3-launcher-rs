@@ -130,8 +130,9 @@ Commit messages in the history follow a short `area: summary` style
    git push origin master --tags
    ```
 
-3. The `Release` workflow builds x86_64 Linux binaries for glibc and static
-   musl, packages each with `README.md`, `LICENSE`, `config.example.toml` and
+3. The `Release` workflow builds x86_64 Linux binaries for glibc (linked
+   against glibc 2.28 with `cargo-zigbuild`, and checked not to need anything
+   newer) and static musl, packages each with `README.md`, `LICENSE`, `config.example.toml` and
    `docs/` (including the manual page), and publishes a GitHub release with the
    checksums.
 
