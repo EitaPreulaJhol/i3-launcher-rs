@@ -1,0 +1,283 @@
+.\" Manual page for launcher-rs.
+.\" Keep the OPTIONS section in sync with `launcher-rs --help`
+.\" (tests/cli.rs checks that every long flag is documented here).
+.TH LAUNCHER-RS 1 "2026-11-27" "launcher-rs 0.2.0" "User Commands"
+.SH NAME
+launcher-rs \- dmenu-style application launcher strip with icons for X11
+.SH SYNOPSIS
+.B launcher-rs
+.RI [ OPTIONS ]
+.br
+.IB command " | launcher-rs \-\-dmenu"
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B launcher-rs
+shows a horizontal strip at the edge of a monitor with the installed
+applications (XDG
+.I .desktop
+entries) and their icons.
+Typing filters the list incrementally; pressing
+.B Enter
+launches the selected application.
+.PP
+It talks to the X server directly and renders in software, without a GUI
+toolkit.
+The strip is an override-redirect window: it has no borders and does not
+steal focus from the window manager.
+Only one instance runs per display; starting it again while it is open does
+nothing.
+.PP
+With
+.BR \-\-dmenu ,
+items are read from standard input, one per line, and the selected line is
+printed to standard output, like
+.BR dmenu (1).
+.SH OPTIONS
+Command line options override the configuration file.
+Values may be given as a separate argument or inline
+.RB ( \-\-height=24 ).
+.TP
+.BR \-c ", " \-\-config " \fIFILE\fR"
+Read the configuration from
+.IR FILE ,
+which must exist.
+.TP
+.BI \-\-theme " NAME"
+Use the built-in color theme
+.IR NAME ,
+overriding the theme from the configuration file.
+.TP
+.BR \-\-themes
+List the built-in themes and exit.
+.TP
+.BR \-p ", " \-\-prompt " \fITEXT\fR"
+Prompt text shown before the input field (default
+.RB \(dq Run:\ \(dq ;
+empty with
+.BR \-\-dmenu ).
+.TP
+.BR \-b ", " \-\-bottom
+Place the strip at the bottom edge of the monitor.
+.TP
+.BR \-e ", " \-\-edge " \fBtop\fR|\fBbottom\fR"
+Monitor edge to attach the strip to.
+.TP
+.BR \-m ", " \-\-monitor " \fITARGET\fR"
+Monitor to use:
+.B focused
+(the monitor with the active window; default),
+.BR primary ,
+.B pointer
+(or
+.BR mouse ),
+a RandR monitor index
+.RB ( 0 ", " 1 ", ...)"
+or a connector name such as
+.BR HDMI\-A\-0 .
+.TP
+.BI \-\-height " PX"
+Strip height in pixels.
+.TP
+.BI \-\-margin " PX"
+Outer horizontal margin in pixels.
+.TP
+.BI \-\-offset " PX"
+Distance from the monitor edge in pixels, e.g. the height of a status bar.
+.TP
+.BR \-\-width " \fIPX\fR|\fIPERCENT\fB%\fR"
+Strip width in pixels or as a percentage of the monitor width.
+.TP
+.BR \-\-align " \fBleft\fR|\fBcenter\fR|\fBright\fR"
+Horizontal alignment when the strip is narrower than the monitor.
+.TP
+.BR \-fn ", " \-\-font " \fIFAMILY\fR"
+Font family.
+Generic names such as
+.BR Sans ,
+.B Serif
+and
+.B Monospace
+are accepted.
+.TP
+.BI \-\-font\-size " PX"
+Font size in pixels.
+.TP
+.BI \-\-icon\-size " PX"
+Icon size in pixels (default 24).
+.TP
+.B \-\-no\-icons
+Do not draw icons.
+.TP
+.BI \-\-terminal " CMD"
+Terminal used for entries with
+.BR Terminal=true .
+.TP
+.B \-\-case\-sensitive
+Make the search case-sensitive.
+.TP
+.BR \-i ", " \-\-ignore\-case
+Make the search case-insensitive (default).
+.TP
+.BR \-\-match " \fBprefix\fR|\fBsubstring\fR|\fBfuzzy\fR"
+Matching strategy.
+.TP
+.BR \-d ", " \-\-dmenu
+Read items from standard input and print the selection.
+.TP
+.B \-\-exec
+With
+.BR \-\-dmenu ,
+run the selected line through the configured shell instead of printing it.
+.TP
+.B \-\-print
+Print the selected application instead of launching it.
+.TP
+.BR \-nb ", " \-\-normal\-bg " \fICOLOR\fR"
+Background color.
+.TP
+.BR \-nf ", " \-\-normal\-fg " \fICOLOR\fR"
+Text color.
+.TP
+.BR \-sb ", " \-\-selected\-bg " \fICOLOR\fR"
+Background color of the selected item.
+.TP
+.BR \-sf ", " \-\-selected\-fg " \fICOLOR\fR"
+Text color of the selected item.
+.TP
+.BR \-h ", " \-\-help
+Show a short help text and exit.
+.TP
+.BR \-v ", " \-\-version
+Show the version and exit.
+.PP
+Colors are written as
+.BR #rgb ,
+.BR #rrggbb ,
+.B #rrggbbaa
+or one of
+.BR black ,
+.B white
+and
+.BR transparent .
+.PP
+For
+.BR dmenu (1)
+compatibility,
+.B \-f
+is accepted and ignored, and
+.BR \-l / \-\-lines " and " \-w / \-\-embed
+are accepted with a warning but not implemented.
+.SH KEYS
+.TP
+.B Enter
+Run the selected item.
+.TP
+.B Tab
+Switch between applications and the executables found in
+.BR $PATH .
+No effect with
+.BR \-\-dmenu .
+.TP
+.B Escape
+Close without running anything.
+.TP
+.BR Up / Down ", " Ctrl+P / Ctrl+N
+Move the selection.
+.TP
+.BR Left / Right
+Move the selection.
+.TP
+.BR Page\ Up / Page\ Down
+Move the selection by 10 items.
+.TP
+.BR Home / End ", " Ctrl+A / Ctrl+E
+Move the text cursor to the start or end; pressed again, select the first or
+last item.
+.TP
+.BR Ctrl+B / Ctrl+F
+Move the text cursor by one character.
+.TP
+.BR Ctrl+Left / Ctrl+Right ", " Alt+B / Alt+F
+Move the text cursor by one word.
+.TP
+.BR Backspace / Delete ", " Ctrl+H / Ctrl+D
+Delete one character.
+.TP
+.BR Ctrl+W ", " Ctrl+U ", " Ctrl+K
+Delete the previous word, everything before the cursor, or everything after
+it.
+.PP
+Clicking an item selects it; the mouse wheel moves the selection.
+.SH EXIT STATUS
+.TP
+.B 0
+An item was launched or printed, or another instance was already running.
+.TP
+.B 1
+Closed without a selection.
+.TP
+.B 2
+Invalid arguments, configuration or another error.
+.SH ENVIRONMENT
+.TP
+.B LAUNCHER_CONFIG
+Configuration file to use when
+.B \-\-config
+is not given.
+.TP
+.B XDG_CONFIG_HOME
+Base directory of the configuration file.
+.TP
+.BR XDG_DATA_HOME ", " XDG_DATA_DIRS
+Directories searched for applications and icon themes.
+.TP
+.B PATH
+Executables listed after pressing
+.BR Tab ,
+and the search path for
+.B TryExec
+and
+.BR Exec .
+.TP
+.B TERMINAL
+Terminal used for
+.B Terminal=true
+entries when none is configured.
+.TP
+.B LAUNCHER_DEBUG
+When set, print timings and diagnostics to standard error.
+.SH FILES
+.TP
+.I $XDG_CONFIG_HOME/launcher\-rs/config.toml
+.TQ
+.I ~/.config/launcher\-rs/config.toml
+Configuration file; the first existing one is used.
+Unknown keys are rejected.
+See
+.I config.example.toml
+in the source distribution for every option.
+.TP
+.I ~/.config/gtk\-3.0/settings.ini
+.TQ
+.I ~/.config/gtk\-4.0/settings.ini
+The icon theme is taken from
+.B gtk\-icon\-theme\-name
+when none is configured.
+.SH EXAMPLES
+.TP
+.B launcher\-rs \-b \-\-theme tokyo\-night
+Strip at the bottom of the focused monitor with a built-in theme.
+.TP
+.B launcher\-rs \-\-width 60% \-\-align center \-\-offset 24
+Centered strip, 60% wide, below a 24 pixel status bar.
+.TP
+.B printf \(aqone\entwo\en\(aq | launcher\-rs \-\-dmenu \-p \(aqChoose: \(aq
+Pick a line from standard input.
+.TP
+.B ls | launcher\-rs \-\-dmenu \-\-exec
+Run the selected line through the shell.
+.SH SEE ALSO
+.BR dmenu (1),
+.BR rofi (1)
+.PP
+https://github.com/EitaPreulaJhol/launcher-rs

@@ -7,7 +7,7 @@
 #   PREFIX=/usr/local ./install.sh
 #   DESTDIR=/tmp/pkg PREFIX=/usr ./install.sh   # packaging
 #
-# Variables: PREFIX, BINDIR, DESTDIR, CARGO, CARGO_TARGET_DIR.
+# Variables: PREFIX, BINDIR, MANDIR, DESTDIR, CARGO, CARGO_TARGET_DIR.
 
 set -eu
 
@@ -15,6 +15,7 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 CARGO=${CARGO:-cargo}
 PREFIX=${PREFIX:-"$HOME/.local"}
 BINDIR=${BINDIR:-"$PREFIX/bin"}
+MANDIR=${MANDIR:-"$PREFIX/share/man"}
 DESTDIR=${DESTDIR:-}
 TARGET_DIR=${CARGO_TARGET_DIR:-"$SCRIPT_DIR/target"}
 BIN=launcher-rs
@@ -23,11 +24,13 @@ usage() {
     cat <<EOF
 Usage: $0 [--no-build] [--help]
 
-Builds the project (release) and installs the '$BIN' binary.
+Builds the project (release) and installs the '$BIN' binary and its
+manual page.
 
 Environment variables:
   PREFIX           base installation directory (default: \$HOME/.local)
   BINDIR           binary directory (default: \$PREFIX/bin)
+  MANDIR           manual page directory (default: \$PREFIX/share/man)
   DESTDIR          packaging prefix (default: empty)
   CARGO            cargo command (default: cargo)
   CARGO_TARGET_DIR cargo build directory
@@ -65,6 +68,10 @@ fi
 
 echo "==> installing into $DESTINATION"
 install -Dm755 "$SOURCE" "$DESTINATION"
+
+MAN_DESTINATION="$DESTDIR$MANDIR/man1/$BIN.1"
+echo "==> installing the manual page into $MAN_DESTINATION"
+install -Dm644 "$SCRIPT_DIR/docs/$BIN.1" "$MAN_DESTINATION"
 
 if [ -z "$DESTDIR" ] && [ "$BINDIR" != "$HOME/.local/bin" ]; then
     case ":$PATH:" in
