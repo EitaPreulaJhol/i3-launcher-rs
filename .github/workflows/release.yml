@@ -6,37 +6,68 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  release:
-    name: Build and publish release
+  build:
+    name: Build (${{ matrix.target }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # glibc (main) and a fully static musl binary for any distribution.
+        target: [x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl]
     steps:
       - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
 
       - name: Build release binary
-        run: cargo build --locked --release
+        run: cargo build --locked --release --target ${{ matrix.target }}
 
       - name: Package
         run: |
           set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
-          archive="launcher-rs-${version}-x86_64-unknown-linux-gnu.tar.gz"
+          archive="launcher-rs-${version}-${{ matrix.target }}.tar.gz"
           mkdir -p dist
-          install -Dm755 target/release/launcher-rs dist/launcher-rs
+          install -Dm755 target/${{ matrix.target }}/release/launcher-rs dist/launcher-rs
           cp README.md LICENSE config.example.toml dist/
           cp -r docs dist/
           tar -C dist -czf "$archive" .
           sha256sum "$archive" > "$archive.sha256"
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.target }}
+          path: launcher-rs-*.tar.gz*
+          if-no-files-found: error
+
+  # One job publishes every archive, so the matrix jobs do not race to
+  # create the same release.
+  publish:
+    name: Publish GitHub release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - name: Download archives
+        uses: actions/download-artifact@v7
+        with:
+          pattern: release-*
+          merge-multiple: true
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v3

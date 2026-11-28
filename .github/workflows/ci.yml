@@ -65,24 +65,78 @@ jobs:
       - name: Run tests
         run: cargo test --locked --all-targets
 
-  build:
-    name: Release build
+  coverage:
+    name: Coverage
     runs-on: ubuntu-latest
-    needs: [lint, test]
     steps:
       - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
 
       - uses: Swatinem/rust-cache@v2
 
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      - name: Measure coverage
+        run: cargo llvm-cov --locked --lcov --output-path lcov.info
+
+      - name: Coverage summary
+        run: |
+          {
+            echo '## Coverage'
+            echo '```'
+            cargo llvm-cov report --summary-only
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload lcov report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-lcov
+          path: lcov.info
+          if-no-files-found: error
+
+  build:
+    name: Release build (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    strategy:
+      fail-fast: false
+      matrix:
+        # glibc (main) and a fully static musl binary. Every dependency is
+        # pure Rust, so musl needs no C toolchain.
+        target: [x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
       - name: Build release binary
-        run: cargo build --locked --release
+        run: cargo build --locked --release --target ${{ matrix.target }}
+
+      - name: Smoke test
+        run: |
+          binary=target/${{ matrix.target }}/release/launcher-rs
+          file "$binary"
+          "$binary" --version
+          "$binary" --themes > /dev/null
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
         with:
-          name: launcher-rs
-          path: target/release/launcher-rs
+          name: launcher-rs-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/launcher-rs
           if-no-files-found: error
