@@ -27,6 +27,9 @@ Builds the release binary and installs it into `~/.local/bin`:
 ./install.sh            # or: make install
 ```
 
+The script installs the binary and the manual page (`man launcher-rs`; make
+sure `$PREFIX/share/man` is in your `MANPATH` for a `~/.local` install).
+
 Use `--no-build` to install an already-built binary:
 
 ```bash
@@ -39,6 +42,7 @@ The destination is controlled by environment variables:
 | --- | --- | --- |
 | `PREFIX` | `$HOME/.local` | Base installation directory |
 | `BINDIR` | `$PREFIX/bin` | Directory that receives the binary |
+| `MANDIR` | `$PREFIX/share/man` | Directory that receives `man1/launcher-rs.1` |
 | `DESTDIR` | empty | Packaging prefix, prepended to the paths |
 | `CARGO` | `cargo` | Cargo command |
 | `CARGO_TARGET_DIR` | `./target` | Build directory |
@@ -70,7 +74,17 @@ cargo build --release
 ### Prebuilt binaries
 
 Prebuilt x86_64 Linux binaries are attached to
-[releases](https://github.com/EitaPreulaJhol/launcher-rs/releases).
+[releases](https://github.com/EitaPreulaJhol/launcher-rs/releases), each archive
+with its `.sha256` checksum and the manual page in `docs/launcher-rs.1`:
+
+| Archive | Use it when |
+| --- | --- |
+| `launcher-rs-VERSION-x86_64-unknown-linux-gnu.tar.gz` | Regular glibc distributions (recommended) |
+| `launcher-rs-VERSION-x86_64-unknown-linux-musl.tar.gz` | Any distribution, including musl-based ones (Alpine, Void musl); fully static |
+
+The static musl build starts a few milliseconds slower (about 12 ms instead of
+9 ms to load fonts) because of musl's memory allocator; typing speed is the
+same.
 
 ## Window manager setup
 
@@ -120,9 +134,10 @@ used. See [Configuration](configuration.md).
 ## Uninstall
 
 ```bash
-make uninstall
-# or remove the binary manually
-rm ~/.local/bin/launcher-rs
+make uninstall                 # binary and manual page
+make uninstall PREFIX=/usr/local
+# or remove them manually
+rm ~/.local/bin/launcher-rs ~/.local/share/man/man1/launcher-rs.1
 ```
 
 The optional config lives at `~/.config/launcher-rs/config.toml`.

@@ -122,6 +122,12 @@ Extensions: `svg` → `png` (XPM is not supported).
 The cache is a `HashMap<(name, size), Option<Pixmap>>`. Resolution is lazy,
 only for visible items, and the result already comes out at the final size.
 
+Lookups avoid probing the file system per candidate: the inheritance chain and
+each theme's directories sorted by fit are computed once per icon size, and
+every icon directory is listed once (`read_dir`) into a set of file names.
+A name found in a listing is still confirmed with `is_file`, so directories
+and dangling links are skipped exactly as with direct probes.
+
 ## Search and ordering
 
 - Case folding is applied unless `behavior.case_sensitive` is true.
@@ -132,6 +138,10 @@ only for visible items, and the result already comes out at the final size.
     starts.
 - Score descending, stable tie (original order). `sort = false` keeps the
   scan/stdin order.
+- Filtering is incremental: every mode is monotonic (anything matching `abc`
+  matches `ab`), so while the query only grows, only the previous matches are
+  re-scored. The full match set is kept before sorting/truncation, so the
+  result is identical to a fresh filter; `Tab` resets it.
 - Searchable fields: `Name`, `GenericName`, `Keywords`, `Categories`.
 - Matched characters can be highlighted with `style.highlight_fg` (rendered via
   cosmic-text's rich text with the positions returned by the matcher).
@@ -154,7 +164,11 @@ only for visible items, and the result already comes out at the final size.
 3. Convert the pixmap to the X11 image format and `PutImage` it into a
    double-buffered pixmap, then copy to the window.
 
-Icons are loaded only for visible cells. Text measurement results are cached.
+Icons are loaded only for visible cells. Text measurement results are cached,
+and so is shaped text: cosmic-text does not split shaping runs on color, so a
+label is shaped once and drawn in any foreground color. Labels with highlighted
+characters are cached by text, highlighted positions and highlight color. The
+X11 image buffer is reused across frames.
 
 ## Startup cost
 
@@ -164,7 +178,8 @@ Measured with Xorg at 1366x768 and 38 applications:
 config:           0 ms
 scan .desktop:    1-2 ms
 X11 window:       0 ms (keyboard grab already active)
-fonts + theme:    8-9 ms (fontconfig/Adwaita)
+fonts + theme:    8-9 ms (fontconfig/Adwaita; on a helper thread that runs
+                  during the scan and window creation)
 first frame:     12-13 ms
 TOTAL:           23-26 ms until the strip is visible
 (first Tab:      +6-15 ms to scan $PATH; cached afterwards)

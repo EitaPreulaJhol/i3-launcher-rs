@@ -45,6 +45,7 @@ Other install methods, prebuilt binaries and the status bar note are in
 | --- | --- |
 | [Installation](docs/installation.md) | Requirements, `install.sh`, `cargo install`, window manager setup |
 | [Usage](docs/usage.md) | CLI flags, keybindings, `--dmenu`, `--print`, monitor targets |
+| [Manual page](docs/launcher-rs.1) | `man launcher-rs` (installed by `install.sh`) |
 | [Configuration](docs/configuration.md) | TOML reference, themes, colors and style options |
 | [Architecture](docs/architecture.md) | Modules, data flow, rendering, geometry and design decisions |
 | [Development](docs/development.md) | Build, tests, debug tools, contributing and releases |
