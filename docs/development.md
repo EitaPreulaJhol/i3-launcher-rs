@@ -50,7 +50,8 @@ frame) and the selected monitor/theme.
 See [Architecture](architecture.md) for the module map and data flow.
 Conventions used in the repository:
 
-- Keep the launcher synchronous; startup latency is a feature.
+- Keep the event loop synchronous; startup latency is a feature. The only
+  helper thread loads fonts and the icon theme during startup.
 - Avoid `sh -c` for `.desktop` execution.
 - Add or update tests next to the code you change.
 - Update the matching section of `docs/configuration.md` and

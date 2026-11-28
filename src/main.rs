@@ -59,6 +59,18 @@ fn run() -> Result<i32> {
         )
     });
 
+    // Loading the font database is the slowest part of startup. It runs on a
+    // helper thread while the entries are scanned and the window is created;
+    // the event loop itself stays single-threaded.
+    let font_start = Instant::now();
+    let painter_thread = {
+        let cfg = cfg.clone();
+        std::thread::spawn(move || {
+            let painter = Painter::new(&cfg);
+            (painter, font_start.elapsed())
+        })
+    };
+
     // Scanning is fast (~ms); reading stdin may block, so it happens before the
     // keyboard grab, exactly like dmenu's default behaviour.
     let scan_start = Instant::now();
@@ -100,14 +112,18 @@ fn run() -> Result<i32> {
 
     let (width, height) = x11.size();
     let mut surface = Pixmap::new(width, height).context("could not allocate the framebuffer")?;
-    // Fonts are loaded after the grab so no keystroke is lost.
-    let font_start = Instant::now();
-    let mut painter = Painter::new(&cfg);
+    // Wait for the fonts only now that the keyboard grab is held, so no
+    // keystroke is lost (X queues the events meanwhile).
+    let wait_start = Instant::now();
+    let (mut painter, font_time) = painter_thread
+        .join()
+        .map_err(|_| anyhow::anyhow!("the font loading thread panicked"))?;
     debug(|| {
         format!(
-            "fonts/icon theme ({}) in {} ms",
+            "fonts/icon theme ({}) in {} ms (waited {} ms)",
             painter.icon_theme(),
-            font_start.elapsed().as_millis()
+            font_time.as_millis(),
+            wait_start.elapsed().as_millis()
         )
     });
 
