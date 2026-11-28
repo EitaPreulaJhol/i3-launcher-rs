@@ -100,12 +100,8 @@ pub fn path_items_in(dirs: &[PathBuf]) -> Vec<Item> {
         }
     }
 
-    items.sort_by(|a, b| {
-        a.label
-            .to_lowercase()
-            .cmp(&b.label.to_lowercase())
-            .then_with(|| a.label.cmp(&b.label))
-    });
+    // `search` already holds the lowercased label.
+    items.sort_by(|a, b| a.search.cmp(&b.search).then_with(|| a.label.cmp(&b.label)));
     items
 }
 

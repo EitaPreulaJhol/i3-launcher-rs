@@ -1,6 +1,6 @@
 //! Discovery of `.desktop` entries across the XDG data directories.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use crate::desktop::parser::{self, DesktopEntry, Locale};
@@ -60,6 +60,7 @@ pub fn scan_dirs(dirs: &[PathBuf], locale: &Locale) -> Vec<DesktopEntry> {
     let desktops = current_desktops();
     let mut seen = HashSet::new();
     let mut entries = Vec::new();
+    let mut try_exec_cache: HashMap<String, bool> = HashMap::new();
 
     for dir in dirs {
         if !dir.is_dir() {
@@ -84,7 +85,16 @@ pub fn scan_dirs(dirs: &[PathBuf], locale: &Locale) -> Vec<DesktopEntry> {
                 continue;
             }
             if let Some(try_exec) = &entry.try_exec {
-                if !is_executable_in_path(try_exec) {
+                // Several entries often share a `TryExec`; each check walks `$PATH`.
+                let found = match try_exec_cache.get(try_exec) {
+                    Some(found) => *found,
+                    None => {
+                        let found = is_executable_in_path(try_exec);
+                        try_exec_cache.insert(try_exec.clone(), found);
+                        found
+                    }
+                };
+                if !found {
                     continue;
                 }
             }
@@ -95,12 +105,8 @@ pub fn scan_dirs(dirs: &[PathBuf], locale: &Locale) -> Vec<DesktopEntry> {
         }
     }
 
-    entries.sort_by(|a, b| {
-        a.name
-            .to_lowercase()
-            .cmp(&b.name.to_lowercase())
-            .then_with(|| a.id.cmp(&b.id))
-    });
+    // Lowercase each name once instead of twice per comparison.
+    entries.sort_by_cached_key(|entry| (entry.name.to_lowercase(), entry.id.clone()));
     entries
 }
 
