@@ -68,3 +68,18 @@ redundant_closure_for_method_calls = "warn"
 uninlined_format_args = "warn"
 doc_markdown = "warn"
 allow_attributes_without_reason = "warn"
+
+[dev-dependencies]
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "matching"
+harness = false
+
+[[bench]]
+name = "startup"
+harness = false
+
+[[bench]]
+name = "frame"
+harness = false
