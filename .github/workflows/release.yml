@@ -64,7 +64,7 @@ jobs:
       contents: write
     steps:
       - name: Download archives
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: release-*
           merge-multiple: true
