@@ -4,7 +4,7 @@ use xkeysym::Keysym;
 
 use crate::app::{Action, Item};
 use crate::config::{Behavior, Config};
-use crate::matching::{self, Match, MatchOptions};
+use crate::matching::{self, IncrementalFilter, Match, MatchOptions};
 use crate::ui::layout::{Cell, Layout};
 use crate::ui::paint::Painter;
 use crate::x11::keys::Mods;
@@ -45,6 +45,8 @@ pub struct App {
     pub layout: Layout,
     pub outcome: Option<Outcome>,
     offset: usize,
+    /// Narrows the previous result while the query grows.
+    matcher: IncrementalFilter,
 }
 
 impl App {
@@ -89,6 +91,7 @@ impl App {
             layout: Layout::default(),
             outcome: None,
             offset: 0,
+            matcher: IncrementalFilter::new(),
         }
     }
 
@@ -409,6 +412,7 @@ impl App {
             }
         }
         std::mem::swap(&mut self.items, &mut self.alternate);
+        self.matcher.reset();
         self.mode = match self.mode {
             Mode::Apps => Mode::Paths,
             Mode::Paths => Mode::Apps,
@@ -420,7 +424,9 @@ impl App {
     }
 
     fn refilter(&mut self, behavior: &Behavior) {
-        self.filtered = matching::filter(&self.items, &self.query, &match_options(behavior));
+        self.filtered = self
+            .matcher
+            .filter(&self.items, &self.query, &match_options(behavior));
         if self.filtered.is_empty() {
             self.sel = 0;
             self.offset = 0;
