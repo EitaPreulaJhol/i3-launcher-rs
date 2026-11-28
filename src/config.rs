@@ -81,14 +81,17 @@ impl FromStr for Color {
                 .ok_or_else(|| format!("invalid color `{s}`: non-hexadecimal character"))
         };
 
+        // Hex digits are ASCII; checking this first keeps byte length and
+        // character count equal below (`#aabbé` used to index out of bounds).
+        if !hex.is_ascii() {
+            return Err(format!("invalid color `{s}`: non-hexadecimal character"));
+        }
         let mut chars = hex.chars();
         let bytes: Vec<u8> = match hex.len() {
             3 | 4 => {
                 let mut out = Vec::with_capacity(4);
-                for _ in 0..hex.len() {
-                    let c = chars.next().unwrap();
-                    let d = digit(c)?;
-                    out.push(d * 17);
+                for c in chars {
+                    out.push(digit(c)? * 17);
                 }
                 out
             }
@@ -789,5 +792,29 @@ mod tests {
         assert!("nope".parse::<Color>().is_err());
         assert_eq!("50%".parse::<Dimension>().unwrap().resolve(800), 400);
         assert_eq!("320".parse::<Dimension>().unwrap().resolve(800), 320);
+    }
+
+    #[test]
+    fn non_ascii_colors_are_rejected_without_panicking() {
+        // Byte length matches a valid form, character count does not.
+        for raw in ["#aabbé", "#aabbccé", "#aé", "#ééé", "0xaabb€"] {
+            let error = raw.parse::<Color>().unwrap_err();
+            assert!(error.contains("non-hexadecimal"), "{raw}: {error}");
+        }
+    }
+
+    #[test]
+    fn colors_round_trip_through_display() {
+        for raw in [
+            "#000000",
+            "#ffffff",
+            "#12345678",
+            "#abc",
+            "black",
+            "transparent",
+        ] {
+            let color: Color = raw.parse().unwrap();
+            assert_eq!(color.to_string().parse::<Color>().unwrap(), color);
+        }
     }
 }
