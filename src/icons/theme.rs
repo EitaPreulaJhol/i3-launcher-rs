@@ -1,6 +1,7 @@
 //! Freedesktop icon theme lookup (`index.theme`, inheritance, best-size fit).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -90,7 +91,7 @@ impl ThemeIndex {
             let Some(props) = sections.get(&dir_name) else {
                 continue;
             };
-            let kind = match props.get("Type").map(|s| s.as_str()) {
+            let kind = match props.get("Type").map(String::as_str) {
                 Some("Scalable") => DirType::Scalable,
                 Some("Threshold") => DirType::Threshold,
                 _ => DirType::Fixed,
@@ -226,10 +227,53 @@ fn data_dirs() -> Vec<PathBuf> {
 }
 
 fn dedup(mut paths: Vec<PathBuf>) -> Vec<PathBuf> {
-    let mut seen = std::collections::HashSet::new();
+    let mut seen = HashSet::new();
     paths.retain(|p| seen.insert(p.clone()));
     paths
 }
+
+/// Contents of one icon directory, read once and reused for every lookup.
+enum DirListing {
+    /// The directory does not exist (or is not a directory).
+    Missing,
+    /// File names found in the directory.
+    Names(HashSet<OsString>),
+    /// The directory exists but cannot be listed; fall back to `stat` probes.
+    Unreadable,
+}
+
+impl DirListing {
+    fn read(dir: &Path) -> Self {
+        match std::fs::read_dir(dir) {
+            Ok(read) => Self::Names(read.flatten().map(|entry| entry.file_name()).collect()),
+            Err(_) if dir.is_dir() => Self::Unreadable,
+            Err(_) => Self::Missing,
+        }
+    }
+
+    fn exists(&self) -> bool {
+        !matches!(self, Self::Missing)
+    }
+
+    /// Whether `dir/file_name` is a regular file (following symlinks).
+    ///
+    /// The listing only filters out names that cannot exist; a hit is still
+    /// confirmed with `is_file` so directories and dangling links are skipped
+    /// exactly as before.
+    fn has_file(&self, dir: &Path, file_name: &str) -> Option<PathBuf> {
+        match self {
+            Self::Missing => None,
+            Self::Names(names) if !names.contains(OsStr::new(file_name)) => None,
+            Self::Names(_) | Self::Unreadable => {
+                let candidate = dir.join(file_name);
+                candidate.is_file().then_some(candidate)
+            }
+        }
+    }
+}
+
+/// Theme chain with each theme's directories pre-sorted for one icon size.
+type OrderedChain = Arc<Vec<(Arc<ThemeIndex>, Vec<usize>)>>;
 
 /// Resolves icon names to files, honouring theme inheritance.
 pub struct IconResolver {
@@ -237,6 +281,11 @@ pub struct IconResolver {
     pixmaps: Vec<PathBuf>,
     themes: HashMap<String, Option<Arc<ThemeIndex>>>,
     preferred: String,
+    /// Inheritance chain of `preferred`, sorted by directory fit, per size.
+    ordered: HashMap<u32, OrderedChain>,
+    /// Directory listings, so a lookup costs a hash probe instead of a
+    /// `stat` per directory and extension.
+    listings: HashMap<PathBuf, DirListing>,
 }
 
 impl IconResolver {
@@ -247,11 +296,18 @@ impl IconResolver {
         } else {
             requested.trim().to_string()
         };
+        Self::with_roots(theme_roots(), pixmap_dirs(), preferred)
+    }
+
+    /// Resolver over explicit theme roots and flat pixmap directories.
+    pub fn with_roots(roots: Vec<PathBuf>, pixmaps: Vec<PathBuf>, preferred: String) -> Self {
         Self {
-            roots: theme_roots(),
-            pixmaps: pixmap_dirs(),
+            roots,
+            pixmaps,
             themes: HashMap::new(),
             preferred,
+            ordered: HashMap::new(),
+            listings: HashMap::new(),
         }
     }
 
@@ -270,14 +326,18 @@ impl IconResolver {
             return direct.is_file().then(|| direct.to_path_buf());
         }
 
-        let has_extension = ["png", "svg", "svgz", "xpm"]
+        let lower = name.to_ascii_lowercase();
+        let has_extension = [".png", ".svg", ".svgz", ".xpm"]
             .iter()
-            .any(|ext| name.to_ascii_lowercase().ends_with(&format!(".{ext}")));
+            .any(|ext| lower.ends_with(ext));
 
-        let start = self.preferred.clone();
-        for theme in self.theme_chain(&start) {
-            if let Some(found) = self.search_theme(&theme, name, size, has_extension) {
-                return Some(found);
+        let chain = self.ordered_chain(size);
+        for (theme, order) in chain.iter() {
+            for &index in order {
+                let dir = &theme.dirs[index];
+                if let Some(found) = self.search_dir(dir, name, has_extension) {
+                    return Some(found);
+                }
             }
         }
 
@@ -287,15 +347,17 @@ impl IconResolver {
         } else {
             &["png", "svg", "svgz"]
         };
-        for dir in &self.pixmaps {
+        for index in 0..self.pixmaps.len() {
+            let dir = self.pixmaps[index].clone();
+            let listing = self.listing(&dir);
             for ext in extensions {
-                let candidate = if ext.is_empty() {
-                    dir.join(name)
+                let file_name = if ext.is_empty() {
+                    name.to_string()
                 } else {
-                    dir.join(format!("{name}.{ext}"))
+                    format!("{name}.{ext}")
                 };
-                if candidate.is_file() {
-                    return Some(candidate);
+                if let Some(found) = listing.has_file(&dir, &file_name) {
+                    return Some(found);
                 }
             }
         }
@@ -303,43 +365,54 @@ impl IconResolver {
         None
     }
 
-    fn search_theme(
-        &self,
-        theme: &ThemeIndex,
-        name: &str,
-        size: u32,
-        has_extension: bool,
-    ) -> Option<PathBuf> {
-        let mut dirs: Vec<&ThemeDir> = theme.dirs.iter().collect();
-        dirs.sort_by_key(|dir| theme.score(dir, size, 1));
-        for dir in dirs {
-            if !dir.path.is_dir() {
-                continue;
-            }
-            if has_extension {
-                let candidate = dir.path.join(name);
-                if candidate.is_file() {
-                    return Some(candidate);
-                }
-                continue;
-            }
-            // Prefer vector icons for scalable dirs, raster otherwise.
-            let extensions: &[&str] = match dir.kind {
-                DirType::Scalable => &["svg", "svgz", "png"],
-                _ => &["png", "svg", "svgz"],
-            };
-            for ext in extensions {
-                let candidate = dir.path.join(format!("{name}.{ext}"));
-                if candidate.is_file() {
-                    return Some(candidate);
-                }
-            }
+    fn search_dir(&mut self, dir: &ThemeDir, name: &str, has_extension: bool) -> Option<PathBuf> {
+        let listing = self.listing(&dir.path);
+        if !listing.exists() {
+            return None;
         }
-        None
+        if has_extension {
+            return listing.has_file(&dir.path, name);
+        }
+        // Prefer vector icons for scalable dirs, raster otherwise.
+        let extensions: &[&str] = match dir.kind {
+            DirType::Scalable => &["svg", "svgz", "png"],
+            _ => &["png", "svg", "svgz"],
+        };
+        extensions
+            .iter()
+            .find_map(|ext| listing.has_file(&dir.path, &format!("{name}.{ext}")))
+    }
+
+    fn listing(&mut self, dir: &Path) -> &DirListing {
+        self.listings
+            .entry(dir.to_path_buf())
+            .or_insert_with(|| DirListing::read(dir))
+    }
+
+    /// Theme chain for `preferred` with directories sorted for `size`,
+    /// computed once per size.
+    fn ordered_chain(&mut self, size: u32) -> OrderedChain {
+        if let Some(chain) = self.ordered.get(&size) {
+            return chain.clone();
+        }
+        let start = self.preferred.clone();
+        let chain: Vec<(Arc<ThemeIndex>, Vec<usize>)> = self
+            .theme_chain(&start)
+            .into_iter()
+            .map(|theme| {
+                let mut order: Vec<usize> = (0..theme.dirs.len()).collect();
+                // Stable sort: ties keep `index.theme` order, as before.
+                order.sort_by_key(|&index| theme.score(&theme.dirs[index], size, 1));
+                (theme, order)
+            })
+            .collect();
+        let chain = Arc::new(chain);
+        self.ordered.insert(size, chain.clone());
+        chain
     }
 
     fn theme_chain(&mut self, start: &str) -> Vec<Arc<ThemeIndex>> {
-        use std::collections::{HashSet, VecDeque};
+        use std::collections::VecDeque;
 
         let mut chain: Vec<Arc<ThemeIndex>> = Vec::new();
         let mut seen: HashSet<String> = HashSet::new();
@@ -470,12 +543,7 @@ mod tests {
     #[test]
     fn finds_exact_size_first() {
         let (base, icons) = fixture();
-        let mut resolver = IconResolver {
-            roots: vec![icons],
-            pixmaps: vec![],
-            themes: HashMap::new(),
-            preferred: "TestTheme".into(),
-        };
+        let mut resolver = IconResolver::with_roots(vec![icons], vec![], "TestTheme".into());
         let path = resolver.find("exact", 16).unwrap();
         assert_eq!(path, base.join("icons/TestTheme/16x16/apps/exact.png"));
         // 48 is closer to the large fixed dir than to 16.
@@ -486,6 +554,69 @@ mod tests {
         let path = resolver.find("inherited", 32).unwrap();
         assert_eq!(path, base.join("icons/Fallback/32x32/apps/inherited.png"));
         assert!(resolver.find("missing", 32).is_none());
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn listing_cache_skips_directories_and_reaches_pixmaps() {
+        let (base, icons) = fixture();
+        let theme = icons.join("TestTheme");
+        // A directory named like an icon must not be returned; the next
+        // candidate (scalable SVG) wins, as with plain `is_file` probes.
+        fs::create_dir_all(theme.join("16x16/apps/shadowed.png")).unwrap();
+        fs::write(theme.join("scalable/apps/shadowed.svg"), b"x").unwrap();
+        let pixmaps = base.join("pixmaps");
+        fs::create_dir_all(&pixmaps).unwrap();
+        fs::write(pixmaps.join("legacy.xpm"), b"x").unwrap();
+        fs::write(pixmaps.join("flat.png"), b"x").unwrap();
+
+        let mut resolver =
+            IconResolver::with_roots(vec![icons], vec![pixmaps.clone()], "TestTheme".into());
+        assert_eq!(
+            resolver.find("shadowed", 16).unwrap(),
+            theme.join("scalable/apps/shadowed.svg")
+        );
+        assert_eq!(resolver.find("flat", 16).unwrap(), pixmaps.join("flat.png"));
+        assert_eq!(
+            resolver.find("legacy.xpm", 16).unwrap(),
+            pixmaps.join("legacy.xpm")
+        );
+        assert_eq!(
+            resolver.find("exact.png", 16).unwrap(),
+            theme.join("16x16/apps/exact.png")
+        );
+        // Repeated lookups and other sizes reuse the caches consistently.
+        for size in [16, 48, 16, 96] {
+            assert!(resolver.find("exact", size).is_some());
+            assert!(resolver.find("inherited", size).is_some());
+            assert!(resolver.find("missing", size).is_none());
+        }
+        let absolute = theme.join("48x48/apps/large.png");
+        assert_eq!(
+            resolver.find(absolute.to_str().unwrap(), 16).unwrap(),
+            absolute
+        );
+        assert!(resolver.find("   ", 16).is_none());
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn missing_theme_falls_back_to_hicolor() {
+        let (base, icons) = fixture();
+        let hicolor = icons.join("hicolor");
+        fs::create_dir_all(hicolor.join("32x32/apps")).unwrap();
+        fs::write(
+            hicolor.join("index.theme"),
+            "[Icon Theme]\nName=Hicolor\nDirectories=32x32/apps\n\
+             [32x32/apps]\nSize=32\nType=Fixed\n",
+        )
+        .unwrap();
+        fs::write(hicolor.join("32x32/apps/base.png"), b"x").unwrap();
+        let mut resolver = IconResolver::with_roots(vec![icons], vec![], "DoesNotExist".into());
+        assert_eq!(
+            resolver.find("base", 24).unwrap(),
+            hicolor.join("32x32/apps/base.png")
+        );
         let _ = fs::remove_dir_all(&base);
     }
 
